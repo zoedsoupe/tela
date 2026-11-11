@@ -18,6 +18,7 @@ defmodule TelaWeb.Router do
   scope "/", TelaWeb do
     pipe_through :browser
 
+    get "/uploads/:id", MediaController, :show
     live "/", DashboardLive, :index
     live "/designs/:id", EditorLive, :show
     post "/profiles", ProfileController, :create

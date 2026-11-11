@@ -79,8 +79,13 @@ defmodule TelaWeb do
     quote do
       # HTML escaping functionality
       import Phoenix.HTML
-      # Core UI components
-      import TelaWeb.CoreComponents
+      import TelaWeb.Components.Actions
+      import TelaWeb.Components.Forms
+      import TelaWeb.Components.Feedback
+      import TelaWeb.Components.Navigation
+      import TelaWeb.Components.DataDisplay
+      import TelaWeb.Components.Overlays
+      import TelaWeb.Components.Helpers
 
       # Common modules used in templates
       alias Phoenix.LiveView.JS

@@ -17,8 +17,7 @@
 @custom-variant phx-submit-loading (.phx-submit-loading&, .phx-submit-loading &);
 @custom-variant phx-change-loading (.phx-change-loading&, .phx-change-loading &);
 
-/* Use the data attribute for dark mode  */
-@custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));
+/* The default semantic theme is selected by the root document. */
 
 /* Make LiveView wrapper divs transparent for layout */
 [data-phx-session],
@@ -27,3 +26,26 @@
 }
 
 /* This file is for your main application CSS */
+
+html {
+  background: var(--tela-bg-page);
+  color: var(--tela-text-primary);
+  font-family: var(--tela-font-sans);
+  scroll-behavior: smooth;
+}
+
+body {
+  min-height: 100vh;
+  background: var(--tela-bg-page);
+}
+
+::selection {
+  background: var(--tela-selection);
+  color: var(--tela-text-on-accent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}

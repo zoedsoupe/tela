@@ -26,14 +26,47 @@ import {hooks as colocatedHooks} from "phoenix-colocated/tela"
 import topbar from "../vendor/topbar"
 
 const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
+const NativeDialog = {
+  mounted() {
+    this.suppressClose = false
+    this.syncDialog = () => {
+      const shouldOpen = this.el.dataset.open === "true"
+      if (shouldOpen && !this.el.open) this.el.showModal()
+      if (!shouldOpen && this.el.open) {
+        this.suppressClose = true
+        this.el.close()
+      }
+    }
+    this.onClose = () => {
+      this.el.dataset.open = "false"
+      if (this.suppressClose) {
+        this.suppressClose = false
+      } else if (this.el.dataset.closeEvent) {
+        this.pushEvent(this.el.dataset.closeEvent, {id: this.el.id})
+      }
+    }
+    this.el.addEventListener("close", this.onClose)
+    this.syncDialog()
+  },
+  updated() {
+    this.syncDialog()
+  },
+  destroyed() {
+    this.el.removeEventListener("close", this.onClose)
+  },
+}
+
 const liveSocket = new LiveSocket("/live", Socket, {
   longPollFallbackMs: 2500,
   params: {_csrf_token: csrfToken},
-  hooks: {...colocatedHooks},
+  hooks: {...colocatedHooks, NativeDialog},
 })
 
 // Show progress bar on live navigation and form submits
-topbar.config({barColors: {0: "#29d"}, shadowColor: "rgba(0, 0, 0, .3)"})
+const styles = getComputedStyle(document.documentElement)
+const progressColor = styles.getPropertyValue("--tela-action-primary-bg").trim()
+const progressShadow = styles.getPropertyValue("--tela-topbar-shadow-color").trim()
+topbar.config({barColors: {0: progressColor}, shadowColor: progressShadow})
 window.addEventListener("phx:page-loading-start", _info => topbar.show(300))
 window.addEventListener("phx:page-loading-stop", _info => topbar.hide())
 
@@ -61,4 +94,3 @@ if (process.env.NODE_ENV === "development") {
     window.liveReloader = reloader
   })
 }
-

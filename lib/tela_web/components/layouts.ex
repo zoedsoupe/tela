@@ -35,40 +35,52 @@ defmodule TelaWeb.Layouts do
 
   def app(assigns) do
     ~H"""
-    <header class="navbar px-4 sm:px-6 lg:px-8">
-      <div class="flex-1">
-        <a href="/" class="flex-1 flex w-fit items-center gap-2">
-          <img src={~p"/images/logo.svg"} width="36" />
-          <span class="text-sm font-semibold">v{Application.spec(:phoenix, :vsn)}</span>
-        </a>
-      </div>
-      <div class="flex-none">
-        <ul class="flex px-1 space-x-4 items-center">
-          <li>
-            <a href="https://phoenixframework.org/" class="btn btn-ghost">Website</a>
-          </li>
-          <li>
-            <a href="https://github.com/phoenixframework/phoenix" class="btn btn-ghost">GitHub</a>
-          </li>
-          <li>
-            <.theme_toggle />
-          </li>
-          <li>
-            <a href="https://phoenix.hexdocs.pm/overview.html" class="btn btn-primary">
-              Get Started <span aria-hidden="true">&rarr;</span>
-            </a>
-          </li>
-        </ul>
-      </div>
-    </header>
+    <div class="min-h-screen bg-page text-ink" data-workspace-shell>
+      <header class="sticky top-0 z-40 border-b border-line bg-surface/95 shadow-topbar backdrop-blur">
+        <div class="mx-auto flex min-h-16 max-w-screen-2xl items-center justify-between gap-5 px-4 sm:px-8">
+          <.link
+            href="/"
+            class="group inline-flex items-center gap-3 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+          >
+            <span class="relative grid size-9 place-items-center rounded-md bg-accent text-on-accent transition-transform duration-fast group-hover:-rotate-3">
+              <Lucideicons.panels_top_left class="size-5" />
+            </span>
+            <span class="leading-tight">
+              <span class="block font-display text-2xl leading-none">tela</span>
+              <span class="mt-1 block text-[0.65rem] font-medium uppercase tracking-[0.16em] text-muted">atelier visual</span>
+            </span>
+          </.link>
 
-    <main class="px-4 py-20 sm:px-6 lg:px-8">
-      <div class="mx-auto max-w-2xl space-y-4">
+          <nav aria-label="Navegação do espaço" class="hidden items-center gap-1 sm:flex">
+            <.nav_item href="/" current={true}>Projetos</.nav_item>
+            <.nav_item href="/">Modelos</.nav_item>
+            <.nav_item href="/">Identidade visual</.nav_item>
+          </nav>
+
+          <div class="flex items-center gap-2">
+            <span class="hidden text-xs text-muted md:inline">Seu espaço criativo</span>
+            <.button href="/" size={:sm}>
+              <Lucideicons.plus class="size-4" />
+              <span>Novo projeto</span>
+            </.button>
+          </div>
+        </div>
+        <nav
+          aria-label="Navegação compacta"
+          class="flex gap-1 overflow-x-auto border-t border-line px-4 py-2 sm:hidden"
+        >
+          <.nav_item href="/" current={true}>Projetos</.nav_item>
+          <.nav_item href="/">Modelos</.nav_item>
+          <.nav_item href="/">Identidade visual</.nav_item>
+        </nav>
+      </header>
+
+      <main id="main-content" class="mx-auto w-full max-w-screen-2xl px-4 py-8 sm:px-8 sm:py-12">
         {render_slot(@inner_block)}
-      </div>
-    </main>
+      </main>
 
-    <.flash_group flash={@flash} />
+      <.flash_group flash={@flash} />
+    </div>
     """
   end
 
@@ -91,7 +103,7 @@ defmodule TelaWeb.Layouts do
       <.flash
         id="client-error"
         kind={:error}
-        title="We can't find the internet"
+        title="Sem conexão com a internet"
         phx-disconnected={
           show(".phx-client-error #client-error")
           |> JS.remove_attribute("hidden", to: ".phx-client-error #client-error")
@@ -99,14 +111,14 @@ defmodule TelaWeb.Layouts do
         phx-connected={hide("#client-error") |> JS.set_attribute({"hidden", ""})}
         hidden
       >
-        Attempting to reconnect
-        <.icon name="hero-arrow-path" class="ml-1 size-3 motion-safe:animate-spin" />
+        Tentando reconectar
+        <Lucideicons.loader_circle class="ml-1 inline size-3 animate-spin motion-reduce:animate-none" />
       </.flash>
 
       <.flash
         id="server-error"
         kind={:error}
-        title="Something went wrong!"
+        title="Algo deu errado"
         phx-disconnected={
           show(".phx-server-error #server-error")
           |> JS.remove_attribute("hidden", to: ".phx-server-error #server-error")
@@ -114,46 +126,9 @@ defmodule TelaWeb.Layouts do
         phx-connected={hide("#server-error") |> JS.set_attribute({"hidden", ""})}
         hidden
       >
-        Attempting to reconnect
-        <.icon name="hero-arrow-path" class="ml-1 size-3 motion-safe:animate-spin" />
+        Tentando reconectar
+        <Lucideicons.loader_circle class="ml-1 inline size-3 animate-spin motion-reduce:animate-none" />
       </.flash>
-    </div>
-    """
-  end
-
-  @doc """
-  Provides dark vs light theme toggle based on themes defined in app.css.
-
-  See <head> in root.html.heex which applies the theme before page load.
-  """
-  def theme_toggle(assigns) do
-    ~H"""
-    <div class="card relative flex flex-row items-center border-2 border-base-300 bg-base-300 rounded-full">
-      <div class="absolute w-1/3 h-full rounded-full border-1 border-base-200 bg-base-100 brightness-200 left-0 [[data-theme=light]_&]:left-1/3 [[data-theme=dark]_&]:left-2/3 [[data-theme-source=system]_&]:!left-0 transition-[left]" />
-
-      <button
-        class="flex p-2 cursor-pointer w-1/3"
-        phx-click={JS.dispatch("phx:set-theme")}
-        data-phx-theme="system"
-      >
-        <.icon name="hero-computer-desktop-micro" class="size-4 opacity-75 hover:opacity-100" />
-      </button>
-
-      <button
-        class="flex p-2 cursor-pointer w-1/3"
-        phx-click={JS.dispatch("phx:set-theme")}
-        data-phx-theme="light"
-      >
-        <.icon name="hero-sun-micro" class="size-4 opacity-75 hover:opacity-100" />
-      </button>
-
-      <button
-        class="flex p-2 cursor-pointer w-1/3"
-        phx-click={JS.dispatch("phx:set-theme")}
-        data-phx-theme="dark"
-      >
-        <.icon name="hero-moon-micro" class="size-4 opacity-75 hover:opacity-100" />
-      </button>
     </div>
     """
   end

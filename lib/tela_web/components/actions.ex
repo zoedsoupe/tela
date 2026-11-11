@@ -1,7 +1,8 @@
 defmodule TelaWeb.Components.Actions do
-  @moduledoc "Buttons and action groups built on semantic design tokens."
+  @moduledoc "Accessible buttons and action groups built on semantic design tokens."
   use Phoenix.Component
 
+  @doc "Renders a button or Phoenix navigation link with a semantic variant. Caller classes extend the base styles."
   attr :variant, :atom,
     default: :primary,
     values: [:primary, :secondary, :outline, :ghost, :danger]
@@ -10,7 +11,11 @@ defmodule TelaWeb.Components.Actions do
   attr :loading, :boolean, default: false
   attr :type, :string, default: "button", values: ["button", "submit", "reset"]
   attr :class, :any, default: nil
-  attr :rest, :global, include: ~w(href navigate patch method download name value disabled id)
+
+  attr :rest, :global,
+    include:
+      ~w(href navigate patch method download name value disabled id form formmethod formtarget formenctype)
+
   slot :inner_block, required: true
 
   def button(assigns) do
@@ -42,6 +47,49 @@ defmodule TelaWeb.Components.Actions do
     """
   end
 
+  @doc "Renders an icon-only button. A visible accessible label is required."
+  attr :label, :string, required: true
+  attr :type, :string, default: "button", values: ["button", "submit", "reset"]
+  attr :variant, :atom, default: :ghost, values: [:primary, :secondary, :outline, :ghost, :danger]
+  attr :size, :atom, default: :md, values: [:sm, :md, :lg]
+  attr :class, :any, default: nil
+  attr :rest, :global, include: ~w(disabled id name value)
+  slot :icon, required: true
+
+  def icon_button(assigns) do
+    ~H"""
+    <button
+      type={@type}
+      aria-label={@label}
+      class={[
+        "inline-flex shrink-0 items-center justify-center rounded-md border transition-colors duration-fast focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
+        variant_classes(@variant),
+        icon_size_classes(@size),
+        @class
+      ]}
+      data-variant={@variant}
+      data-size={@size}
+      {@rest}
+    >
+      {render_slot(@icon)}
+    </button>
+    """
+  end
+
+  @doc "Groups related actions and prevents the controls from wrapping apart."
+  attr :label, :string, default: nil
+  attr :class, :any, default: nil
+  attr :rest, :global
+  slot :inner_block, required: true
+
+  def button_group(assigns) do
+    ~H"""
+    <div role="group" aria-label={@label} class={["inline-flex items-center gap-2", @class]} {@rest}>
+      {render_slot(@inner_block)}
+    </div>
+    """
+  end
+
   defp classes(variant, size, class) do
     [
       "inline-flex shrink-0 cursor-pointer items-center justify-center gap-2 rounded-md border font-semibold transition-colors duration-fast focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
@@ -67,4 +115,8 @@ defmodule TelaWeb.Components.Actions do
   defp size_classes(:sm), do: "min-h-8 px-3 text-xs"
   defp size_classes(:md), do: "min-h-10 px-4 text-sm"
   defp size_classes(:lg), do: "min-h-12 px-5 text-base"
+
+  defp icon_size_classes(:sm), do: "size-8"
+  defp icon_size_classes(:md), do: "size-10"
+  defp icon_size_classes(:lg), do: "size-12"
 end

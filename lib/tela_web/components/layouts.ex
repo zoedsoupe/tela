@@ -54,7 +54,7 @@ defmodule TelaWeb.Layouts do
           <nav aria-label="Navegação do espaço" class="hidden items-center gap-1 sm:flex">
             <.nav_item href="/" current={true}>Projetos</.nav_item>
             <.nav_item href="/">Modelos</.nav_item>
-            <.nav_item href="/">Identidade visual</.nav_item>
+            <.nav_item href="/brand-kits">Identidade visual</.nav_item>
           </nav>
 
           <div class="flex items-center gap-2">
@@ -71,7 +71,7 @@ defmodule TelaWeb.Layouts do
         >
           <.nav_item href="/" current={true}>Projetos</.nav_item>
           <.nav_item href="/">Modelos</.nav_item>
-          <.nav_item href="/">Identidade visual</.nav_item>
+          <.nav_item href="/brand-kits">Identidade visual</.nav_item>
         </nav>
       </header>
 

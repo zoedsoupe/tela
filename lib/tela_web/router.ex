@@ -20,6 +20,7 @@ defmodule TelaWeb.Router do
 
     get "/uploads/:id", MediaController, :show
     live "/", DashboardLive, :index
+    live "/brand-kits", BrandKitsLive, :index
     live "/designs/:id", EditorLive, :show
     post "/profiles", ProfileController, :create
   end

@@ -14,4 +14,19 @@ defmodule TelaWeb.Router do
   pipeline :api do
     plug :accepts, ["json"]
   end
+
+  scope "/", TelaWeb do
+    pipe_through :browser
+
+    live "/", DashboardLive, :index
+    post "/profiles", ProfileController, :create
+  end
+
+  if Application.compile_env(:tela, :dev_routes, false) do
+    scope "/dev", TelaWeb do
+      pipe_through :browser
+
+      live "/styleguide", StyleguideLive, :index
+    end
+  end
 end

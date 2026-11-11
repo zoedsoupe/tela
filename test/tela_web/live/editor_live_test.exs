@@ -49,6 +49,20 @@ defmodule TelaWeb.EditorLiveTest do
     assert saved.document == document
   end
 
+  test "exposes animation controls and forwards animation and presentation commands", %{conn: conn, design: design} do
+    {:ok, view, _html} = live(conn, ~p"/designs/#{design.id}")
+    render_click(view, "editor:toggle-animation")
+    assert has_element?(view, "#editor-animation-panel")
+    assert has_element?(view, "#animation-enter-fade")
+    assert has_element?(view, "#animation-play")
+
+    render_hook(view, "editor:selection_changed", %{"selection" => %{"id" => "title", "type" => "textbox"}})
+    render_hook(view, "canvas:animation_action", %{"action" => "set", "slot" => "enter", "preset" => "fade"})
+    assert_push_event(view, "canvas:animation_action", %{action: "set", slot: "enter", preset: "fade"})
+    render_hook(view, "canvas:present", %{"pages" => "all"})
+    assert_push_event(view, "canvas:present", %{pages: "all"})
+  end
+
   test "returns a conflict status for stale saves", %{conn: conn, design: design} do
     {:ok, view, _html} = live(conn, ~p"/designs/#{design.id}")
     document = design.document

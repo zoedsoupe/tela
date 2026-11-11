@@ -36,6 +36,7 @@ defmodule Tela.MediaTest do
     assert media.width == 1
     assert media.height == 1
     assert File.exists?(media.storage_path)
+    assert Media.public_url(media) == "/uploads/#{media.id}"
     assert {:ok, [listed]} = Media.list_uploads()
     assert listed.id == media.id
   end

@@ -6,6 +6,11 @@ end
 
 config :tela, TelaWeb.Endpoint, http: [port: String.to_integer(System.get_env("PORT", "4000"))]
 
+config :tela,
+  pexels_api_key: System.get_env("PEXELS_API_KEY"),
+  pixabay_api_key: System.get_env("PIXABAY_API_KEY"),
+  uploads_dir: System.get_env("UPLOADS_DIR", "uploads")
+
 if config_env() == :dev do
   # Reload browser tabs when matching files change.
   config :tela, TelaWeb.Endpoint,

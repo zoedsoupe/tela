@@ -7,7 +7,7 @@ defmodule Tela.MediaExternalTest do
   @photo %{
     id: 123,
     photographer: "Fotógrafa Brasileira",
-    src: %{original: "https://images.pexels.test/full.jpg", medium: "https://images.pexels.test/thumb.jpg"}
+    src: %{original: "https://images.pexels.com/full.jpg", medium: "https://images.pexels.com/thumb.jpg"}
   }
 
   setup :verify_on_exit!
@@ -37,8 +37,8 @@ defmodule Tela.MediaExternalTest do
     assert {:ok, %{items: [photo], next_page: 2, errors: []}} = Media.search_external("praia", :pexels, 1)
     assert photo.external_id == "123"
     assert photo.provider == :pexels
-    assert photo.thumb_url == "https://images.pexels.test/thumb.jpg"
-    assert photo.full_url == "https://images.pexels.test/full.jpg"
+    assert photo.thumb_url == "https://images.pexels.com/thumb.jpg"
+    assert photo.full_url == "https://images.pexels.com/full.jpg"
     assert photo.author == "Fotógrafa Brasileira"
   end
 
@@ -48,7 +48,7 @@ defmodule Tela.MediaExternalTest do
       {:ok, %{status: 200, headers: [], body: JSON.encode!(@photo)}}
     end)
 
-    expect(Tela.Media.HTTPClientMock, :get, fn "https://images.pexels.test/full.jpg", _headers, _options ->
+    expect(Tela.Media.HTTPClientMock, :get, fn "https://images.pexels.com/full.jpg", _headers, _options ->
       {:ok, %{status: 200, headers: [], body: png()}}
     end)
 

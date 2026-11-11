@@ -4,7 +4,7 @@ defmodule TelaWeb.StyleguideLive do
 
   @impl true
   def mount(_params, _session, socket) do
-    {:ok, assign(socket, flash: %{}, current_scope: nil, page_title: "Sistema visual")}
+    {:ok, assign(socket, current_scope: nil, page_title: "Sistema visual")}
   end
 
   @impl true
@@ -164,7 +164,7 @@ defmodule TelaWeb.StyleguideLive do
           </div>
           <div class="max-w-lg space-y-4 rounded-lg border border-line bg-surface p-5">
             <.progress value={68} label="Envio de imagens" />
-            <div class="space-y-2" aria-label="Esqueleto de prévia">
+            <div class="space-y-2" aria-hidden="true">
               <.skeleton class="h-4 w-2/3" />
               <.skeleton class="h-28 w-full" />
             </div>
@@ -250,16 +250,15 @@ defmodule TelaWeb.StyleguideLive do
           <div class="flex flex-wrap items-center gap-4">
             <.dropdown id="styleguide-dropdown" label="Ações do projeto">
               <:trigger>
-                <.button variant={:outline}>Ações <Lucideicons.chevron_down class="size-4" /></.button>
+                <span class="inline-flex min-h-10 items-center gap-2 rounded-md border border-line bg-surface px-4 text-sm font-semibold">Ações
+                <Lucideicons.chevron_down class="size-4" /></span>
               </:trigger>
               <a href="/" class="block rounded px-3 py-2 text-sm hover:bg-surface-secondary">Duplicar projeto</a>
               <a href="/" class="block rounded px-3 py-2 text-sm hover:bg-surface-secondary">Mover para pasta</a>
             </.dropdown>
             <.menu id="styleguide-menu" label="Mais opções">
               <:trigger>
-                <.icon_button label="Mais opções"><:icon>
-                  <Lucideicons.ellipsis class="size-4" />
-                </:icon></.icon_button>
+                <span class="inline-flex size-10 items-center justify-center rounded-md border border-line"><Lucideicons.ellipsis class="size-4" /></span>
               </:trigger>
               <a
                 href="/"
@@ -271,7 +270,9 @@ defmodule TelaWeb.StyleguideLive do
               >Duplicar</a>
             </.menu>
             <.popover id="styleguide-popover" label="Informações do formato">
-              <:trigger><.button variant={:ghost}>Sobre formatos</.button></:trigger>
+              <:trigger>
+                <span class="inline-flex min-h-10 items-center rounded-md px-4 text-sm font-semibold">Sobre formatos</span>
+              </:trigger>
               <p class="text-sm text-muted">Você pode alterar o formato antes de começar a editar.</p>
             </.popover>
             <.tooltip label="Desfazer a última alteração">

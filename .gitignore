@@ -39,3 +39,7 @@ npm-debug.log
 *.db
 *.db-*
 
+/node_modules/
+
+# Local implementation plan
+/PLAN.md

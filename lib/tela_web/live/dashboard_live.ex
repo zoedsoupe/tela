@@ -16,6 +16,8 @@ defmodule TelaWeb.DashboardLive do
       |> assign(:designs_empty?, designs == [])
       |> assign(:presets, Preset.all())
       |> assign(:profile_form, to_form(%{"name" => ""}, as: :profile))
+      |> assign(:rename_design_id, nil)
+      |> assign(:rename_form, to_form(%{"title" => ""}, as: :design))
       |> stream(:designs, designs, dom_id: &"design-#{&1.id}")
 
     {:ok, socket}
@@ -79,17 +81,27 @@ defmodule TelaWeb.DashboardLive do
               id={"preset-#{preset.id}"}
               class="group rounded-lg border border-line bg-surface p-3 transition-transform duration-fast hover:-translate-y-1 hover:border-line-strong sm:p-4"
             >
-              <div class="grid aspect-[4/3] place-items-center overflow-hidden rounded-md bg-surface-secondary p-4">
-                <div
-                  class="grid max-h-full max-w-full place-items-center border border-line bg-page text-accent transition-colors group-hover:bg-accent-soft"
-                  style={preset_preview_style(preset)}
-                  aria-hidden="true"
-                >
-                  <Lucideicons.scan class="size-5" />
+              <button
+                id={"create-design-#{preset.id}"}
+                type="button"
+                phx-click="create_design"
+                phx-value-preset_id={preset.id}
+                aria-label={"Criar projeto no formato #{preset.name}"}
+                class="block w-full rounded-md text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+              >
+                <div class="grid aspect-[4/3] place-items-center overflow-hidden rounded-md bg-surface-secondary p-4">
+                  <div
+                    class="grid max-h-full max-w-full place-items-center border border-line bg-page text-accent transition-colors group-hover:bg-accent-soft"
+                    style={preset_preview_style(preset)}
+                    aria-hidden="true"
+                  >
+                    <Lucideicons.scan class="size-5" />
+                  </div>
                 </div>
-              </div>
-              <h3 class="mt-3 text-sm font-semibold text-ink">{preset.name}</h3>
-              <p class="mt-1 text-xs text-muted">{preset.width} × {preset.height} px</p>
+                <span class="mt-3 block text-sm font-semibold text-ink">{preset.name}</span>
+                <span class="mt-1 block text-xs text-muted">{preset.width} × {preset.height} px</span>
+                <span class="sr-only">Criar projeto</span>
+              </button>
             </article>
           </div>
         </section>
@@ -139,6 +151,81 @@ defmodule TelaWeb.DashboardLive do
                 >
                   <Lucideicons.arrow_up_right class="size-4" />
                 </.link>
+              </div>
+              <div class="border-t border-line px-4 py-3">
+                <details id={"design-actions-#{design.id}"} class="group/actions">
+                  <summary class="flex cursor-pointer list-none items-center gap-2 text-sm font-medium text-muted outline-none transition-colors hover:text-ink focus-visible:ring-2 focus-visible:ring-focus [&::-webkit-details-marker]:hidden">
+                    <Lucideicons.ellipsis class="size-4" aria-hidden="true" />
+                    <span>Ações do projeto</span>
+                    <Lucideicons.chevron_down
+                      class="ml-auto size-4 transition-transform group-open/actions:rotate-180"
+                      aria-hidden="true"
+                    />
+                  </summary>
+                  <div class="mt-3 space-y-3 border-t border-line pt-3">
+                    <button
+                      id={"duplicate-design-#{design.id}"}
+                      type="button"
+                      phx-click="duplicate_design"
+                      phx-value-id={design.id}
+                      class="flex min-h-9 w-full items-center gap-2 rounded-md px-2 text-left text-sm text-ink transition-colors hover:bg-surface-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+                    >
+                      <Lucideicons.copy class="size-4 text-muted" aria-hidden="true" />
+                      Duplicar projeto
+                    </button>
+                    <%= if @rename_design_id == design.id do %>
+                      <.form
+                        for={@rename_form}
+                        id={"rename-design-form-#{design.id}"}
+                        phx-submit="rename_design"
+                        phx-value-id={design.id}
+                        class="space-y-2"
+                      >
+                        <.input field={@rename_form[:title]} label="Novo título" />
+                        <div class="flex gap-2">
+                          <.button type="submit" class="min-h-9 px-3 py-1.5 text-sm">
+                            Salvar nome
+                          </.button>
+                          <button
+                            type="button"
+                            phx-click="cancel_rename"
+                            class="min-h-9 rounded-md px-3 py-1.5 text-sm text-muted hover:bg-surface-secondary hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+                          >
+                            Cancelar
+                          </button>
+                        </div>
+                      </.form>
+                    <% else %>
+                      <button
+                        id={"start-rename-design-#{design.id}"}
+                        type="button"
+                        phx-click="rename_design"
+                        phx-value-id={design.id}
+                        class="flex min-h-9 w-full items-center gap-2 rounded-md px-2 text-left text-sm text-ink transition-colors hover:bg-surface-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+                      >
+                        <Lucideicons.pencil class="size-4 text-muted" aria-hidden="true" />
+                        Renomear projeto
+                      </button>
+                    <% end %>
+                    <details id={"delete-confirmation-#{design.id}"} class="rounded-md">
+                      <summary class="flex min-h-9 cursor-pointer list-none items-center gap-2 rounded-md px-2 text-sm text-danger outline-none transition-colors hover:bg-danger-soft focus-visible:ring-2 focus-visible:ring-focus [&::-webkit-details-marker]:hidden">
+                        <Lucideicons.trash_2 class="size-4" aria-hidden="true" /> Excluir projeto…
+                      </summary>
+                      <div class="mt-2 rounded-md border border-danger/30 bg-danger-soft p-3">
+                        <p class="text-sm text-ink">Excluir “{design.title}” deste espaço?</p>
+                        <button
+                          id={"confirm-delete-design-#{design.id}"}
+                          type="button"
+                          phx-click="delete_design"
+                          phx-value-id={design.id}
+                          class="mt-3 inline-flex min-h-9 items-center gap-2 rounded-md bg-danger px-3 py-1.5 text-sm font-semibold text-white transition-colors hover:bg-danger/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+                        >
+                          <Lucideicons.trash_2 class="size-4" aria-hidden="true" /> Confirmar exclusão
+                        </button>
+                      </div>
+                    </details>
+                  </div>
+                </details>
               </div>
             </article>
             <div
@@ -208,6 +295,98 @@ defmodule TelaWeb.DashboardLive do
     </Layouts.app>
     """
   end
+
+  @impl true
+  def handle_event("create_design", %{"preset_id" => preset_id}, socket) do
+    attrs = %{
+      created_by_id: profile_id(socket.assigns.current_profile),
+      title: "Sem título",
+      preset_id: preset_id
+    }
+
+    case Designs.create(attrs) do
+      {:ok, design} -> {:noreply, push_navigate(socket, to: "/designs/#{design.id}")}
+      {:error, _reason} -> {:noreply, socket}
+    end
+  end
+
+  @impl true
+  def handle_event("duplicate_design", %{"id" => design_id}, socket) do
+    case Designs.duplicate(design_id, profile_id(socket.assigns.current_profile)) do
+      {:ok, _design} -> {:noreply, refresh_designs(socket)}
+      {:error, _reason} -> {:noreply, socket}
+    end
+  end
+
+  @impl true
+  def handle_event("rename_design", %{"id" => design_id} = params, socket) do
+    case rename_title(params) do
+      nil ->
+        case Designs.get(design_id) do
+          {:ok, design} ->
+            socket =
+              socket
+              |> assign(:rename_design_id, design.id)
+              |> assign(:rename_form, to_form(%{"title" => design.title}, as: :design))
+              |> refresh_designs()
+
+            {:noreply, socket}
+
+          {:error, _reason} ->
+            {:noreply, socket}
+        end
+
+      title ->
+        case Designs.rename(design_id, title) do
+          {:ok, _design} ->
+            socket =
+              socket
+              |> assign(:rename_design_id, nil)
+              |> refresh_designs()
+
+            {:noreply, socket}
+
+          {:error, _reason} ->
+            {:noreply, socket}
+        end
+    end
+  end
+
+  @impl true
+  def handle_event("cancel_rename", _params, socket) do
+    {:noreply, socket |> assign(:rename_design_id, nil) |> refresh_designs()}
+  end
+
+  @impl true
+  def handle_event("delete_design", %{"id" => design_id}, socket) do
+    case Designs.delete(design_id) do
+      {:ok, _design} ->
+        socket =
+          socket
+          |> assign(:rename_design_id, nil)
+          |> refresh_designs()
+
+        {:noreply, socket}
+
+      {:error, _reason} ->
+        {:noreply, socket}
+    end
+  end
+
+  defp refresh_designs(socket) do
+    {:ok, designs} = Designs.list()
+
+    socket
+    |> assign(:designs_empty?, designs == [])
+    |> stream(:designs, designs, reset: true, dom_id: &"design-#{&1.id}")
+  end
+
+  defp profile_id(nil), do: nil
+  defp profile_id(profile), do: profile.id
+
+  defp rename_title(%{"title" => title}) when is_binary(title), do: title
+  defp rename_title(%{"design" => %{"title" => title}}) when is_binary(title), do: title
+  defp rename_title(_params), do: nil
 
   defp load_current_profile(profile_id) when is_binary(profile_id) do
     case Profiles.get_profile(profile_id) do

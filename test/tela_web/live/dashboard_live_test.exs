@@ -15,10 +15,45 @@ defmodule TelaWeb.DashboardLiveTest do
 
   test "lists every design in the shared workspace", %{conn: conn} do
     profile = profile_fixture(%{name: "Autora"})
-    {:ok, design} = Designs.create(%{created_by_id: profile.id, title: "Peça compartilhada", preset_id: "story"})
+
+    {:ok, design} =
+      Designs.create(%{
+        created_by_id: profile.id,
+        title: "Peça compartilhada",
+        preset_id: "story"
+      })
+
     {:ok, view, _html} = live(conn, ~p"/")
     assert has_element?(view, "#design-#{design.id}")
     assert has_element?(view, "#design-#{design.id} [data-design-format='story']")
+  end
+
+  test "creates a design from a preset and navigates to the editor", %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/")
+    render_click(view, "create_design", %{"preset_id" => "post-instagram"})
+    assert {:ok, [design]} = Designs.list()
+    assert design.title == "Sem título"
+    assert_redirect(view, "/designs/#{design.id}")
+  end
+
+  test "duplicates, renames, and deletes a workspace design", %{conn: conn} do
+    profile = profile_fixture()
+
+    {:ok, design} =
+      Designs.create(%{created_by_id: profile.id, title: "Original", preset_id: "story"})
+
+    {:ok, view, _html} = live(conn, ~p"/")
+
+    render_click(view, "duplicate_design", %{"id" => design.id})
+    assert {:ok, designs} = Designs.list()
+    assert length(designs) == 2
+
+    render_click(view, "rename_design", %{"id" => design.id, "title" => "Renomeada"})
+    assert {:ok, renamed} = Designs.get(design.id)
+    assert renamed.title == "Renomeada"
+
+    render_click(view, "delete_design", %{"id" => design.id})
+    assert {:error, :not_found} = Designs.get(design.id)
   end
 
   test "creates and selects a local profile through an HTTP session", %{conn: conn} do

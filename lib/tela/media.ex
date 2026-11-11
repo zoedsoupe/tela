@@ -13,6 +13,9 @@ defmodule Tela.Media do
 
   @providers %{pexels: Pexels, pixabay: Pixabay, wikimedia: Wikimedia}
   @max_external_bytes 20_000_000
+  @max_upload_bytes 50_000_000
+  @max_poster_bytes 5_000_000
+  @max_metadata_bytes 65_536
 
   @spec list_uploads() :: {:ok, [MediaUpload.t()]}
   def list_uploads do
@@ -24,26 +27,120 @@ defmodule Tela.Media do
     {:ok, uploads}
   end
 
+  @spec list_uploads(map()) :: {:ok, [MediaUpload.t()]}
+  def list_uploads(filters) when is_map(filters) do
+    kind = attr(filters, :kind)
+    search = attr(filters, :q) || attr(filters, :search)
+    ordering = attr(filters, :ordering)
+
+    uploads =
+      MediaUpload
+      |> maybe_filter_kind(kind)
+      |> maybe_search_filename(search)
+      |> order_uploads(ordering)
+      |> Repo.all()
+
+    {:ok, uploads}
+  end
+
+  @spec get_upload(binary()) :: {:ok, MediaUpload.t()} | {:error, :not_found}
+  def get_upload(id) do
+    with {:ok, uuid} <- Ecto.UUID.cast(id),
+         %MediaUpload{} = upload <- Repo.get(MediaUpload, uuid) do
+      {:ok, upload}
+    else
+      _ -> {:error, :not_found}
+    end
+  end
+
+  @spec list_uploads_by_ids([binary()]) :: {:ok, [MediaUpload.t()]} | {:error, :invalid_asset}
+  def list_uploads_by_ids(ids) when is_list(ids) do
+    with {:ok, uuids} <- cast_uuids(ids) do
+      uploads = Repo.all(from upload in MediaUpload, where: upload.id in ^uuids)
+      by_id = Map.new(uploads, &{&1.id, &1})
+      ordered_uploads = Enum.map(uuids, &Map.get(by_id, &1))
+
+      if Enum.any?(ordered_uploads, &is_nil/1),
+        do: {:error, :invalid_asset},
+        else: {:ok, ordered_uploads}
+    end
+  end
+
+  def list_uploads_by_ids(_ids), do: {:error, :invalid_asset}
+
+  @spec delete_upload(binary()) :: {:ok, MediaUpload.t()} | {:error, :not_found}
+  def delete_upload(id) do
+    with {:ok, upload} <- get_upload(id),
+         {:ok, deleted} <- Repo.delete(upload) do
+      Local.remove(deleted.storage_path)
+      Local.remove(deleted.poster_path)
+      {:ok, deleted}
+    end
+  end
+
+  @spec to_asset(MediaUpload.t()) :: map()
+  def to_asset(%MediaUpload{} = upload) do
+    metadata = upload.metadata || %{}
+    is_image = upload.kind in ["image", "svg"]
+    poster_url = if is_binary(upload.poster_path), do: public_url(upload, :poster), else: ""
+
+    attribution =
+      if upload.attribution,
+        do: %{provider: upload.source, author: upload.attribution, author_url: "", source_url: ""}
+
+    %{
+      id: upload.id,
+      kind: upload.kind,
+      name: upload.filename,
+      url: public_url(upload),
+      thumb_url: if(is_image, do: public_url(upload), else: poster_url),
+      width: upload.width || 0,
+      height: upload.height || 0,
+      size: upload.byte_size,
+      mime: upload.content_type,
+      tags: [],
+      attribution: attribution,
+      duration_ms: upload.duration_ms,
+      status: "ready",
+      error: nil,
+      poster_url: poster_url,
+      audio_url: "",
+      video: if(upload.kind == "video", do: Map.get(metadata, "video"), else: nil),
+      metadata: metadata,
+      created_at: iso8601(upload.inserted_at)
+    }
+  end
+
   @spec upload(Ecto.UUID.t() | nil, map()) :: {:ok, MediaUpload.t()} | {:error, term()}
   def upload(created_by_id, upload) when is_map(upload) do
     with {:ok, temp_path} <- upload_value(upload, :temp_path),
          {:ok, client_name} <- upload_value(upload, :client_name),
-         {:ok, binary} <- File.read(temp_path),
-         {:ok, media_info} <- Format.inspect(binary),
-         :ok <- validate_content_type(upload, media_info.content_type),
          {:ok, byte_size} <- file_size(temp_path),
+         :ok <- validate_upload_size(byte_size),
+         kind <- attr(upload, :kind) || kind_from_content_type(attr(upload, :content_type)),
+         {:ok, media_info} <- Format.inspect_upload(temp_path, kind),
+         :ok <- validate_content_type(upload, media_info.content_type),
+         {:ok, metadata} <- upload_metadata(upload),
+         {:ok, duration_ms} <- optional_positive_integer(attr(upload, :duration_ms)),
+         {:ok, width} <- optional_positive_integer(attr(upload, :width), media_info.width),
+         {:ok, height} <- optional_positive_integer(attr(upload, :height), media_info.height),
          {:ok, filename} <- display_filename(client_name, media_info.extension),
          uuid <- Ecto.UUID.generate(),
-         {:ok, storage_path} <- Local.store(temp_path, media_info.extension, uuid) do
+         {:ok, storage_path, poster_path} <-
+           store_upload_files(temp_path, media_info, uuid, upload) do
       attrs = %{
         created_by_id: created_by_id,
+        kind: media_info.kind,
         filename: filename,
         storage_path: storage_path,
         content_type: media_info.content_type,
         byte_size: byte_size,
         source: "upload",
-        width: media_info.width,
-        height: media_info.height
+        width: width,
+        height: height,
+        duration_ms: duration_ms,
+        poster_path: poster_path,
+        metadata: metadata
       }
 
       case %MediaUpload{} |> MediaUpload.changeset(attrs) |> Repo.insert() do
@@ -51,9 +148,13 @@ defmodule Tela.Media do
           {:ok, media_upload}
 
         {:error, changeset} ->
-          File.rm(storage_path)
+          Local.remove(storage_path)
+          Local.remove(poster_path)
           {:error, changeset}
       end
+    else
+      false -> {:error, :upload_too_large}
+      {:error, reason} -> {:error, reason}
     end
   end
 
@@ -129,6 +230,9 @@ defmodule Tela.Media do
   @spec public_url(MediaUpload.t()) :: String.t()
   def public_url(%MediaUpload{id: id}) when is_binary(id), do: "/uploads/" <> id
 
+  def public_url(%MediaUpload{id: id}, :poster) when is_binary(id),
+    do: "/uploads/" <> id <> "?variant=poster"
+
   defp search_provider(query, provider, page) do
     with {:ok, provider_module} <- provider_module(provider) do
       provider_module.search(query, page)
@@ -178,6 +282,7 @@ defmodule Tela.Media do
         content_type: media_info.content_type,
         byte_size: File.stat!(storage_path).size,
         source: Atom.to_string(provider),
+        kind: media_info.kind,
         external_id: external_id,
         attribution: author,
         width: media_info.width,
@@ -255,6 +360,158 @@ defmodule Tela.Media do
     end
   end
 
+  defp attr(attrs, key) when is_map(attrs),
+    do: Map.get(attrs, key, Map.get(attrs, Atom.to_string(key)))
+
+  defp attr(_attrs, _key), do: nil
+
+  defp kind_from_content_type(type) when is_binary(type) do
+    type = type |> String.split(";", parts: 2) |> hd() |> String.trim() |> String.downcase()
+
+    cond do
+      type == "image/svg+xml" -> "svg"
+      String.starts_with?(type, "image/") -> "image"
+      String.starts_with?(type, "audio/") -> "audio"
+      String.starts_with?(type, "video/") -> "video"
+      true -> nil
+    end
+  end
+
+  defp kind_from_content_type(_type), do: nil
+
+  defp validate_upload_size(size) when size in 1..@max_upload_bytes, do: :ok
+  defp validate_upload_size(_size), do: {:error, :upload_too_large}
+
+  defp optional_positive_integer(nil), do: {:ok, nil}
+  defp optional_positive_integer(0), do: {:ok, nil}
+  defp optional_positive_integer(value) when is_integer(value) and value > 0, do: {:ok, value}
+
+  defp optional_positive_integer(value) when is_binary(value) do
+    case Integer.parse(value) do
+      {0, ""} -> {:ok, nil}
+      {integer, ""} when integer > 0 -> {:ok, integer}
+      _ -> {:error, :invalid_upload_metadata}
+    end
+  end
+
+  defp optional_positive_integer(_value), do: {:error, :invalid_upload_metadata}
+
+  defp optional_positive_integer(nil, fallback), do: {:ok, fallback}
+  defp optional_positive_integer(value, _fallback), do: optional_positive_integer(value)
+
+  defp upload_metadata(upload) do
+    case attr(upload, :metadata) do
+      nil ->
+        {:ok, nil}
+
+      metadata when is_map(metadata) ->
+        validate_metadata(metadata)
+
+      metadata when is_binary(metadata) ->
+        with {:ok, decoded} when is_map(decoded) <- JSON.decode(metadata) do
+          validate_metadata(decoded)
+        else
+          _ -> {:error, :invalid_upload_metadata}
+        end
+
+      _ ->
+        {:error, :invalid_upload_metadata}
+    end
+  end
+
+  defp validate_metadata(metadata) do
+    encoded = JSON.encode!(metadata)
+
+    if byte_size(encoded) <= @max_metadata_bytes,
+      do: {:ok, metadata},
+      else: {:error, :invalid_upload_metadata}
+  end
+
+  defp store_upload_files(temp_path, media_info, uuid, upload) do
+    with {:ok, storage_path} <- Local.store(temp_path, media_info.extension, uuid) do
+      case attr(upload, :poster_temp_path) do
+        nil ->
+          {:ok, storage_path, nil}
+
+        poster_temp_path ->
+          case store_poster(poster_temp_path, uuid <> "-poster") do
+            {:ok, poster_path} ->
+              {:ok, storage_path, poster_path}
+
+            {:error, reason} ->
+              Local.remove(storage_path)
+              {:error, reason}
+          end
+      end
+    end
+  end
+
+  defp store_poster(path, uuid) when is_binary(path) do
+    with {:ok, size} <- file_size(path),
+         true <- size <= @max_poster_bytes,
+         {:ok, info} <- Format.inspect_upload(path, nil),
+         true <- info.kind in ["image", "svg"],
+         {:ok, poster_path} <- Local.store(path, info.extension, uuid) do
+      {:ok, poster_path}
+    else
+      false -> {:error, :invalid_poster}
+      {:error, :unsupported_media} -> {:error, :invalid_poster}
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
+  defp store_poster(_path, _uuid), do: {:error, :invalid_poster}
+
+  defp maybe_filter_kind(query, kind) when kind in ["image", "svg", "audio", "video"],
+    do: where(query, [upload], upload.kind == ^kind)
+
+  defp maybe_filter_kind(query, nil),
+    do: where(query, [upload], upload.kind in ["image", "svg"])
+
+  defp maybe_filter_kind(query, kind) when is_binary(kind),
+    do: where(query, [upload], upload.kind == ^kind)
+
+  defp maybe_filter_kind(query, _kind),
+    do: where(query, [upload], upload.kind in ["image", "svg"])
+
+  defp maybe_search_filename(query, search) when is_binary(search) and search != "" do
+    pattern = "%#{String.downcase(String.trim(search))}%"
+    where(query, [upload], fragment("lower(?) LIKE ?", upload.filename, ^pattern))
+  end
+
+  defp maybe_search_filename(query, _search), do: query
+
+  defp order_uploads(query, ordering) when ordering in ["name", "-name"] do
+    direction = if String.starts_with?(ordering, "-"), do: :desc, else: :asc
+
+    order_by(query, [upload], [
+      {^direction, fragment("lower(?)", upload.filename)},
+      asc: upload.id
+    ])
+  end
+
+  defp order_uploads(query, ordering) when ordering in ["size", "-size"] do
+    direction = if String.starts_with?(ordering, "-"), do: :desc, else: :asc
+    order_by(query, [upload], [{^direction, upload.byte_size}, asc: upload.id])
+  end
+
+  defp order_uploads(query, ordering) when ordering in ["created_at", "-created_at"] do
+    direction = if String.starts_with?(ordering, "-"), do: :desc, else: :asc
+    order_by(query, [upload], [{^direction, upload.inserted_at}, asc: upload.id])
+  end
+
+  defp order_uploads(query, _ordering),
+    do: order_by(query, [upload], desc: upload.inserted_at, desc: upload.id)
+
+  defp cast_uuids(ids) do
+    Enum.reduce_while(ids, {:ok, []}, fn id, {:ok, acc} ->
+      case Ecto.UUID.cast(id) do
+        {:ok, uuid} -> {:cont, {:ok, acc ++ [uuid]}}
+        :error -> {:halt, {:error, :invalid_asset}}
+      end
+    end)
+  end
+
   defp file_size(path) do
     case File.stat(path) do
       {:ok, %{size: size}} when size > 0 -> {:ok, size}
@@ -276,6 +533,13 @@ defmodule Tela.Media do
 
         normalized_actual =
           if normalized_type == "image/jpg", do: "image/jpeg", else: normalized_type
+
+        normalized_actual =
+          case normalized_actual do
+            "audio/x-wav" -> "audio/wav"
+            "audio/wave" -> "audio/wav"
+            type -> type
+          end
 
         if normalized_actual == actual_type do
           :ok
@@ -302,4 +566,7 @@ defmodule Tela.Media do
       {:ok, filename}
     end
   end
+
+  defp iso8601(%DateTime{} = datetime), do: DateTime.to_iso8601(datetime)
+  defp iso8601(_datetime), do: nil
 end

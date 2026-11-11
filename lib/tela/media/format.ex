@@ -1,17 +1,20 @@
 defmodule Tela.Media.Format do
   @moduledoc false
 
+  import Kernel, except: [inspect: 1]
   import Bitwise
 
   @png_signature <<137, 80, 78, 71, 13, 10, 26, 10>>
   @webp_signature "WEBP"
   @jpeg_sof_markers [0xC0, 0xC1, 0xC2, 0xC3, 0xC5, 0xC6, 0xC7, 0xC9, 0xCA, 0xCB, 0xCD, 0xCE, 0xCF]
+  @max_signature_bytes 65_536
 
   @type media_info :: %{
           content_type: String.t(),
-          width: non_neg_integer(),
-          height: non_neg_integer(),
-          extension: String.t()
+          width: non_neg_integer() | nil,
+          height: non_neg_integer() | nil,
+          extension: String.t(),
+          kind: String.t()
         }
 
   @spec inspect(binary()) :: {:ok, media_info()} | {:error, :unsupported_media}
@@ -39,15 +42,153 @@ defmodule Tela.Media.Format do
 
   def inspect(binary) when is_binary(binary) do
     case svg_dimensions(binary) do
-      {:ok, width, height} -> {:ok, info("image/svg+xml", width, height, ".svg")}
-      :error -> {:error, :unsupported_media}
+      {:ok, width, height} ->
+        if safe_svg?(binary),
+          do: {:ok, info("image/svg+xml", width, height, ".svg")},
+          else: {:error, :unsupported_media}
+
+      :error ->
+        inspect_container(binary, nil)
     end
   end
 
   def inspect(_binary), do: {:error, :unsupported_media}
 
+  @spec inspect_upload(binary(), String.t() | nil) ::
+          {:ok, media_info()} | {:error, :unsupported_media}
+  def inspect_upload(path, kind) when is_binary(path) do
+    with {:ok, content} <- read_upload_content(path, kind),
+         {:ok, info} <- inspect_upload_content(content, kind),
+         :ok <- validate_upload_kind(info, kind) do
+      {:ok, info}
+    end
+  end
+
+  def inspect_upload(_path, _kind), do: {:error, :unsupported_media}
+
   defp info(content_type, width, height, extension) do
-    %{content_type: content_type, width: width, height: height, extension: extension}
+    %{
+      content_type: content_type,
+      width: width,
+      height: height,
+      extension: extension,
+      kind: kind_for(content_type)
+    }
+  end
+
+  defp info(content_type, extension, kind) do
+    %{content_type: content_type, width: nil, height: nil, extension: extension, kind: kind}
+  end
+
+  defp read_prefix(path) do
+    case File.open(path, [:read, :binary], fn file -> IO.binread(file, @max_signature_bytes) end) do
+      {:ok, prefix} when is_binary(prefix) -> {:ok, prefix}
+      _ -> {:error, :unsupported_media}
+    end
+  end
+
+  defp read_upload_content(path, kind) when kind in [nil, "image", "svg"] do
+    case File.read(path) do
+      {:ok, content} -> {:ok, content}
+      _ -> {:error, :unsupported_media}
+    end
+  end
+
+  defp read_upload_content(path, _kind), do: read_prefix(path)
+
+  defp inspect_upload_content(binary, kind) do
+    case inspect(binary) do
+      {:ok, %{kind: detected_kind} = info} when detected_kind in ["image", "svg"] ->
+        if kind in [nil, "image", "svg"], do: {:ok, info}, else: {:error, :unsupported_media}
+
+      _ ->
+        inspect_container(binary, kind)
+    end
+  end
+
+  defp inspect_container(<<"RIFF", _size::unsigned-little-32, "WAVE", _::binary>>, "audio"),
+    do: {:ok, info("audio/wav", ".wav", "audio")}
+
+  defp inspect_container(<<"RF64", _size::unsigned-little-32, "WAVE", _::binary>>, "audio"),
+    do: {:ok, info("audio/wav", ".wav", "audio")}
+
+  defp inspect_container(
+         <<"RIFF", _size::unsigned-little-32, @webp_signature, _::binary>>,
+         _kind
+       ),
+       do: {:error, :unsupported_media}
+
+  defp inspect_container(<<"FORM", _size::unsigned-big-32, "AIFF", _::binary>>, "audio"),
+    do: {:ok, info("audio/aiff", ".aiff", "audio")}
+
+  defp inspect_container(<<"fLaC", _::binary>>, "audio"),
+    do: {:ok, info("audio/flac", ".flac", "audio")}
+
+  defp inspect_container(<<"OggS", _::binary>>, "audio"),
+    do: {:ok, info("audio/ogg", ".ogg", "audio")}
+
+  defp inspect_container(<<"ID3", _::binary>>, "audio"),
+    do: {:ok, info("audio/mpeg", ".mp3", "audio")}
+
+  defp inspect_container(<<0xFF, second, _::binary>>, "audio") when band(second, 0xE0) == 0xE0,
+    do: {:ok, info("audio/mpeg", ".mp3", "audio")}
+
+  defp inspect_container(<<0x1A, 0x45, 0xDF, 0xA3, _::binary>>, kind)
+       when kind in ["audio", "video"],
+       do:
+         {:ok,
+          info(
+            if(kind == "audio", do: "audio/webm", else: "video/webm"),
+            if(kind == "audio", do: ".weba", else: ".webm"),
+            kind
+          )}
+
+  defp inspect_container(
+         <<_size::unsigned-big-32, "ftyp", brand::binary-size(4), _::binary>>,
+         kind
+       )
+       when kind in ["audio", "video"] do
+    cond do
+      kind == "audio" -> {:ok, info("audio/mp4", ".m4a", kind)}
+      brand == "qt  " -> {:ok, info("video/quicktime", ".mov", kind)}
+      true -> {:ok, info("video/mp4", ".mp4", kind)}
+    end
+  end
+
+  defp inspect_container(<<"RIFF", _size::unsigned-little-32, "WAVE", _::binary>>, _kind),
+    do: {:error, :unsupported_media}
+
+  defp inspect_container(<<"FORM", _size::unsigned-big-32, "AIFF", _::binary>>, _kind),
+    do: {:error, :unsupported_media}
+
+  defp inspect_container(<<"fLaC", _::binary>>, _kind), do: {:error, :unsupported_media}
+  defp inspect_container(<<"OggS", _::binary>>, _kind), do: {:error, :unsupported_media}
+  defp inspect_container(<<"ID3", _::binary>>, _kind), do: {:error, :unsupported_media}
+
+  defp inspect_container(<<0xFF, second, _::binary>>, _kind) when band(second, 0xE0) == 0xE0,
+    do: {:error, :unsupported_media}
+
+  defp inspect_container(<<0x1A, 0x45, 0xDF, 0xA3, _::binary>>, _kind),
+    do: {:error, :unsupported_media}
+
+  defp inspect_container(<<_size::unsigned-big-32, "ftyp", _::binary>>, _kind),
+    do: {:error, :unsupported_media}
+
+  defp inspect_container(_binary, _kind), do: {:error, :unsupported_media}
+
+  defp validate_upload_kind(%{kind: "image"}, kind) when kind in [nil, "image", "svg"], do: :ok
+  defp validate_upload_kind(%{kind: kind}, kind), do: :ok
+  defp validate_upload_kind(_info, _kind), do: {:error, :unsupported_media}
+
+  defp kind_for("image/svg+xml"), do: "svg"
+  defp kind_for("image/" <> _rest), do: "image"
+
+  defp safe_svg?(binary) do
+    not Regex.match?(~r/<\s*(?:script|foreignObject|iframe|object|embed|audio|video)\b/i, binary) and
+      not Regex.match?(~r/\bon[a-z]+\s*=/i, binary) and
+      not Regex.match?(~r/(?:javascript\s*:|data\s*:\s*text\/html|<!DOCTYPE|<!ENTITY)/i, binary) and
+      not Regex.match?(~r/\b(?:href|xlink:href)\s*=\s*(["'])\s*(?!#)[^"']*\1/i, binary) and
+      not Regex.match?(~r/@import|url\s*\(\s*["']?(?!#)/i, binary)
   end
 
   defp jpeg_dimensions(<<0xFF, marker, rest::binary>>)

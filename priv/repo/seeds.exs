@@ -11,3 +11,4 @@
 # and so on) as they will fail if something goes wrong.
 
 Tela.Catalog.Seed.seed!()
+Tela.Fonts.Seed.seed!()

@@ -8,14 +8,15 @@ The Doory Attribution Assurance License is retained at licenses/Doory-LICENSE.
 Its original notice is retained at licenses/Doory-NOTICE.
 The application shell displays the required Doory credit.
 
-Adapted modules:
-- assets/js/editor/export/gif.ts
-- assets/js/editor/export/gif_pixels.ts
-- assets/js/editor/export/gif_protocol.ts
-- assets/js/editor/export/gifenc.d.ts
+The React editor, its document model, visual assets and browser export engines in frontend/ are adapted from Doory. Local catalog, font, template and audio content retains the attribution and license metadata distributed with its sources.
 
-Third-party browser libraries retain their own licenses:
+Third-party browser libraries retain their own licenses and notices, including:
 - Fabric.js (MIT)
+- React, React DOM and React Router (MIT)
 - jsPDF (MIT)
 - gifenc (MIT), Copyright (c) 2017 Matt DesLauriers
+- MP4 and WebM muxers (MIT), mp4box.js (BSD-3-Clause)
 - Lucide (ISC), with derived Feather icons under MIT
+- Bundled fonts (SIL Open Font License 1.1)
+
+The complete original Doory notices and its Attribution Assurance License are retained in licenses/.

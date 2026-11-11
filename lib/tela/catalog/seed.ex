@@ -4,6 +4,11 @@ defmodule Tela.Catalog.Seed do
   alias Tela.Catalog.Asset
   alias Tela.Repo
 
+  @license "AGPL-3.0-or-later"
+  @license_url "https://www.gnu.org/licenses/agpl-3.0.html"
+  @attribution "Tela contributors"
+  @source_url "https://github.com/zoedsoupe/tela"
+
   @assets [
     %{
       slug: "shape-circle",
@@ -113,7 +118,7 @@ defmodule Tela.Catalog.Seed do
       slug: "background-dots",
       title_pt: "Fundo de pontos",
       tags_pt: "fundo padrão pontos bolinhas textura repetição",
-      type: "background",
+      type: "graphic",
       svg:
         ~s|<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 200"><rect width="320" height="200" fill="#F7F0E6"/><g fill="#F2765B"><circle cx="24" cy="24" r="5"/><circle cx="64" cy="24" r="5"/><circle cx="104" cy="24" r="5"/><circle cx="144" cy="24" r="5"/><circle cx="184" cy="24" r="5"/><circle cx="224" cy="24" r="5"/><circle cx="264" cy="24" r="5"/><circle cx="304" cy="24" r="5"/><circle cx="24" cy="64" r="5"/><circle cx="64" cy="64" r="5"/><circle cx="104" cy="64" r="5"/><circle cx="144" cy="64" r="5"/><circle cx="184" cy="64" r="5"/><circle cx="224" cy="64" r="5"/><circle cx="264" cy="64" r="5"/><circle cx="304" cy="64" r="5"/><circle cx="24" cy="104" r="5"/><circle cx="64" cy="104" r="5"/><circle cx="104" cy="104" r="5"/><circle cx="144" cy="104" r="5"/><circle cx="184" cy="104" r="5"/><circle cx="224" cy="104" r="5"/><circle cx="264" cy="104" r="5"/><circle cx="304" cy="104" r="5"/><circle cx="24" cy="144" r="5"/><circle cx="64" cy="144" r="5"/><circle cx="104" cy="144" r="5"/><circle cx="144" cy="144" r="5"/><circle cx="184" cy="144" r="5"/><circle cx="224" cy="144" r="5"/><circle cx="264" cy="144" r="5"/><circle cx="304" cy="144" r="5"/><circle cx="24" cy="184" r="5"/><circle cx="64" cy="184" r="5"/><circle cx="104" cy="184" r="5"/><circle cx="144" cy="184" r="5"/><circle cx="184" cy="184" r="5"/><circle cx="224" cy="184" r="5"/><circle cx="264" cy="184" r="5"/><circle cx="304" cy="184" r="5"/></g></svg>|
     },
@@ -121,7 +126,7 @@ defmodule Tela.Catalog.Seed do
       slug: "background-waves",
       title_pt: "Fundo de ondas",
       tags_pt: "fundo ondas curvas azul textura mar água",
-      type: "background",
+      type: "graphic",
       svg:
         ~s|<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 200"><rect width="320" height="200" fill="#E8EDF7"/><path d="M0 54c42-29 78 29 120 0s78 29 120 0 62 0 80 0M0 102c42-29 78 29 120 0s78 29 120 0 62 0 80 0M0 150c42-29 78 29 120 0s78 29 120 0 62 0 80 0" fill="none" stroke="#3859A8" stroke-linecap="round" stroke-width="8"/></svg>|
     },
@@ -129,20 +134,19 @@ defmodule Tela.Catalog.Seed do
       slug: "background-color-blocks",
       title_pt: "Fundo de blocos de cor",
       tags_pt: "fundo geométrico blocos formas colorido composição",
-      type: "background",
+      type: "graphic",
       svg:
         ~s|<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 200"><rect width="320" height="200" fill="#F7F0E6"/><path d="M0 0h111v86H0z" fill="#3859A8"/><path d="M111 0h209v42H111z" fill="#F2C14E"/><path d="M208 42h112v112H208z" fill="#F2765B"/><path d="M0 128h118v72H0z" fill="#B4C77A"/><circle cx="160" cy="122" r="36" fill="#E4A8B4"/></svg>|
     }
   ]
 
-  @doc "Writes the SVG files and upserts all built-in records into the shared catalog."
+  @doc "Upserts the bundled SVG records into the shared catalog."
   @spec seed!() :: %{String.t() => non_neg_integer()}
   def seed! do
-    assets_dir = Application.app_dir(:tela, "priv/static/assets/catalog")
-    File.mkdir_p!(assets_dir)
-
-    Enum.each(@assets, fn asset ->
-      File.write!(Path.join(assets_dir, asset.slug <> ".svg"), asset.svg)
+    Enum.with_index(@assets)
+    |> Enum.each(fn {asset, sort_order} ->
+      {pack_slug, pack_name} = pack(asset.type)
+      {width, height} = dimensions(asset.svg)
 
       Repo.insert!(
         %Asset{
@@ -150,9 +154,42 @@ defmodule Tela.Catalog.Seed do
           title_pt: asset.title_pt,
           tags_pt: asset.tags_pt,
           type: asset.type,
-          file_path: "/assets/catalog/#{asset.slug}.svg"
+          file_path: "data:image/svg+xml;base64," <> Base.encode64(asset.svg),
+          pack_slug: pack_slug,
+          pack_name: pack_name,
+          style: style(asset.slug, asset.type),
+          svg: asset.svg,
+          width: width,
+          height: height,
+          colors: %{values: colors(asset.svg)},
+          is_recolorable: true,
+          license: @license,
+          license_url: @license_url,
+          attribution: @attribution,
+          source_url: @source_url,
+          sort_order: sort_order
         },
-        on_conflict: {:replace, [:title_pt, :tags_pt, :type, :file_path]},
+        on_conflict:
+          {:replace,
+           [
+             :title_pt,
+             :tags_pt,
+             :type,
+             :file_path,
+             :pack_slug,
+             :pack_name,
+             :style,
+             :svg,
+             :width,
+             :height,
+             :colors,
+             :is_recolorable,
+             :license,
+             :license_url,
+             :attribution,
+             :source_url,
+             :sort_order
+           ]},
         conflict_target: :slug
       )
     end)
@@ -160,5 +197,30 @@ defmodule Tela.Catalog.Seed do
     @assets
     |> Enum.group_by(& &1.type)
     |> Map.new(fn {type, assets} -> {type, length(assets)} end)
+  end
+
+  defp pack("shape"), do: {"shapes", "Formas"}
+  defp pack("icon"), do: {"icons", "Ícones"}
+  defp pack("illustration"), do: {"illustrations", "Ilustrações"}
+  defp pack(_kind), do: {"graphics", "Grafismos"}
+
+  defp style(slug, "icon") when slug in ["icon-arrow-right", "shape-line"], do: "outline"
+  defp style(_slug, "shape"), do: "filled"
+  defp style(_slug, "icon"), do: "filled"
+  defp style(_slug, _kind), do: "colour"
+
+  defp dimensions(svg) do
+    case Regex.run(~r/viewBox="0 0 (\d+(?:\.\d+)?) (\d+(?:\.\d+)?)"/, svg) do
+      [_, width, height] -> {String.to_integer(width), String.to_integer(height)}
+      _ -> {128, 128}
+    end
+  end
+
+  defp colors(svg) do
+    svg
+    |> then(&Regex.scan(~r/#[0-9a-fA-F]{6}\b/, &1, capture: :first))
+    |> List.flatten()
+    |> Enum.map(&String.downcase/1)
+    |> Enum.uniq()
   end
 end

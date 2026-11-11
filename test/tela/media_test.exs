@@ -68,6 +68,32 @@ defmodule Tela.MediaTest do
     refute String.contains?(media.storage_path, "../")
   end
 
+  test "asset lookup preserves input order and rejects any missing id", %{profile: profile} do
+    first_path = temporary_png()
+    second_path = temporary_png()
+
+    assert {:ok, first} =
+             Media.upload(profile.id, %{
+               temp_path: first_path,
+               client_name: "first.png",
+               content_type: "image/png"
+             })
+
+    assert {:ok, second} =
+             Media.upload(profile.id, %{
+               temp_path: second_path,
+               client_name: "second.png",
+               content_type: "image/png"
+             })
+
+    assert {:ok, [found_second, found_first]} = Media.list_uploads_by_ids([second.id, first.id])
+    assert [found_second.id, found_first.id] == [second.id, first.id]
+    refute Enum.any?([found_second, found_first], &is_nil/1)
+
+    assert {:error, :invalid_asset} =
+             Media.list_uploads_by_ids([first.id, Ecto.UUID.generate()])
+  end
+
   defp temporary_png do
     path = Path.join("tmp", "pixel-#{System.unique_integer([:positive])}.png")
     File.mkdir_p!(Path.dirname(path))

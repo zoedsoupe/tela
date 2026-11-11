@@ -1,0 +1,129 @@
+defmodule TelaWeb.SharedControllerTest do
+  use TelaWeb.ConnCase, async: false
+
+  alias Tela.Designs
+  alias Tela.Sharing
+  alias TelaWeb.SharedController
+
+  test "view token returns only its document and cannot expose comment data or save", %{
+    conn: conn
+  } do
+    {:ok, design} = Designs.create(%{title: "Visível", preset_id: "story"})
+    {:ok, %{token: token}} = Sharing.create_share_link(design.id, %{role: "view"})
+    {:ok, _comment} = Sharing.create_comment(design.id, %{body: "Privado no endpoint"})
+
+    response = SharedController.show(conn, %{"token" => token})
+    body = json_response(response, 200)
+    assert body["design_id"] == design.id
+    assert body["document"] == design.document
+    refute Map.has_key?(body, "comments")
+    refute Map.has_key?(body, "designs")
+
+    rejected =
+      SharedController.update(conn, %{
+        "token" => token,
+        "title" => "Mutação",
+        "expected_revision" => 1
+      })
+
+    assert rejected.status == 403
+    assert %{"error" => %{"code" => "read_only"}} = json_response(rejected, 403)
+  end
+
+  test "comment token reads and creates comments but is not an edit capability", %{conn: conn} do
+    {:ok, design} = Designs.create(%{title: "Comentável", preset_id: "story"})
+    {:ok, %{token: token}} = Sharing.create_share_link(design.id, %{role: "comment"})
+
+    missing_name = SharedController.create_comment(conn, %{"token" => token, "body" => "Oi"})
+    assert missing_name.status == 422
+    assert %{"error" => %{"code" => "author_name_required"}} = json_response(missing_name, 422)
+
+    created =
+      SharedController.create_comment(conn, %{
+        "token" => token,
+        "body" => "Oi",
+        "author_name" => "Pessoa",
+        "page_id" => "p1",
+        "x" => 2,
+        "y" => 3
+      })
+
+    assert created.status == 201
+    comment = json_response(created, 201)
+    assert comment["profile_id"] == nil
+
+    comments = SharedController.comments(conn, %{"token" => token})
+    assert [listed] = json_response(comments, 200)
+    assert listed["id"] == comment["id"]
+
+    denied =
+      SharedController.update(conn, %{"token" => token, "title" => "No", "expected_revision" => 1})
+
+    assert denied.status == 403
+  end
+
+  test "edit token enforces expected revision for saves and restores versions on only its design",
+       %{conn: conn} do
+    {:ok, design} = Designs.create(%{title: "Editável", preset_id: "story"})
+    {:ok, other} = Designs.create(%{title: "Outro", preset_id: "story"})
+    {:ok, version} = Designs.create_version(design.id, "Versão inicial")
+    {:ok, %{token: token}} = Sharing.create_share_link(design.id, %{role: "edit"})
+    document = put_in(design.document, ["pages", Access.at(0), "background", "color"], "#abcdef")
+
+    saved =
+      SharedController.update(conn, %{
+        "token" => token,
+        "document" => document,
+        "expected_revision" => 1
+      })
+
+    assert json_response(saved, 200)["revision"] == 2
+
+    conflict =
+      SharedController.update(conn, %{
+        "token" => token,
+        "document" => document,
+        "expected_revision" => 1
+      })
+
+    assert conflict.status == 409
+
+    assert %{
+             "error" => %{"code" => "revision_conflict"},
+             "current" => %{"revision" => 2}
+           } = json_response(conflict, 409)
+
+    renamed =
+      SharedController.update(conn, %{
+        "token" => token,
+        "title" => "Trocado",
+        "expected_revision" => 2
+      })
+
+    assert json_response(renamed, 200)["title"] == "Trocado"
+
+    restored =
+      SharedController.restore_version(conn, %{
+        "token" => token,
+        "id" => version.id,
+        "expected_revision" => 3
+      })
+
+    assert json_response(restored, 200)["revision"] == 4
+    assert {:ok, restored_design} = Designs.get(design.id)
+    assert restored_design.document == design.document
+    assert {:ok, untouched} = Designs.get(other.id)
+    assert untouched.revision == 1
+
+    {:ok, foreign_version} = Designs.create_version(other.id, "Não pertence")
+
+    denied =
+      SharedController.restore_version(conn, %{
+        "token" => token,
+        "id" => foreign_version.id,
+        "expected_revision" => 4
+      })
+
+    assert denied.status == 404
+  end
+end

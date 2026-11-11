@@ -16,11 +16,17 @@ defmodule Tela.Designs.Design do
           page_count: integer() | nil,
           preset_id: String.t() | nil,
           category: String.t() | nil,
+          folder_id: Ecto.UUID.t() | nil,
+          starred: boolean(),
+          trashed_at: DateTime.t() | nil,
           is_template: boolean(),
           revision: integer(),
           thumbnail_path: String.t() | nil,
           created_by_id: Ecto.UUID.t() | nil,
           created_by: Tela.Profiles.Profile.t() | Ecto.Association.NotLoaded.t() | nil,
+          updated_by_id: Ecto.UUID.t() | nil,
+          updated_by: Tela.Profiles.Profile.t() | Ecto.Association.NotLoaded.t() | nil,
+          folder: Tela.Designs.Folder.t() | Ecto.Association.NotLoaded.t() | nil,
           inserted_at: DateTime.t() | nil,
           updated_at: DateTime.t() | nil
         }
@@ -33,10 +39,14 @@ defmodule Tela.Designs.Design do
     field :page_count, :integer
     field :preset_id, :string
     field :category, :string
+    field :starred, :boolean, default: false
+    field :trashed_at, :utc_datetime
     field :is_template, :boolean, default: false
     field :revision, :integer, default: 1
     field :thumbnail_path, :string
     belongs_to :created_by, Tela.Profiles.Profile
+    belongs_to :updated_by, Tela.Profiles.Profile
+    belongs_to :folder, Tela.Designs.Folder
 
     timestamps(type: :utc_datetime)
   end
@@ -46,6 +56,7 @@ defmodule Tela.Designs.Design do
     design
     |> cast(attrs, [
       :created_by_id,
+      :updated_by_id,
       :title,
       :document,
       :width,
@@ -55,15 +66,20 @@ defmodule Tela.Designs.Design do
       :category,
       :is_template,
       :revision,
-      :thumbnail_path
+      :thumbnail_path,
+      :folder_id,
+      :starred,
+      :trashed_at
     ])
     |> update_change(:title, &String.trim/1)
     |> validate_required([:title, :document, :width, :height, :page_count, :category, :revision])
-    |> validate_length(:title, min: 1, max: 160)
+    |> validate_length(:title, min: 1, max: 200)
     |> validate_number(:width, greater_than: 0)
     |> validate_number(:height, greater_than: 0)
     |> validate_number(:page_count, greater_than: 0)
     |> validate_number(:revision, greater_than: 0)
     |> foreign_key_constraint(:created_by_id)
+    |> foreign_key_constraint(:updated_by_id)
+    |> foreign_key_constraint(:folder_id)
   end
 end

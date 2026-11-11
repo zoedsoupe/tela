@@ -4,6 +4,7 @@ defmodule TelaWeb.Router do
   pipeline :browser do
     plug :accepts, ["html"]
     plug :fetch_session
+    plug TelaWeb.ProfileSession
     plug :fetch_live_flash
     plug :put_root_layout, html: {TelaWeb.Layouts, :root}
     plug :protect_from_forgery

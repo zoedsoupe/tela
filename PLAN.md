@@ -2,10 +2,11 @@
 
 ## 1. Product and constraints
 
-Tela is a self-hosted graphic editor for social posts, stories, invitations, print pieces, thumbnails, and simple presentations. The UI and user-facing copy are in Brazilian Portuguese. The initial instance serves two private users, but every design, upload, and brand kit belongs to its owner.
+Tela is a self-hosted graphic editor for social posts, stories, invitations, print pieces, thumbnails, and simple presentations. The UI and user-facing copy are in Brazilian Portuguese. The MVP runs as a shared trusted workspace behind a private network such as a Tailnet. Optional local profiles identify authorship; they do not authenticate or authorize access. Designs, uploads, and Brand Kits are available to everyone who can reach the instance.
 
 The MVP includes:
 
+- Optional local profile selection persisted in the Phoenix session.
 - Multiple pages per design, all sharing the same dimensions.
 - Text, geometric shapes, local images, SVG assets, layers, locking, visibility, zoom, pan, undo, and redo.
 - Blank designs and reusable templates.
@@ -25,6 +26,7 @@ The MVP excludes:
 - Multi-track timeline editing.
 - Presentation notes, a second presenter window, and remote presentation control.
 - Background removal, upscaling, MCP, and a public API.
+- Passwords, session tokens, `phx.gen.auth`, permissions, and owner-based access barriers.
 - Vector PDF output and a full mobile editor.
 
 ## 2. Stack and boundaries
@@ -44,11 +46,9 @@ Use cases are public functions inside contexts. There is no generic `Tela.UseCas
 
 ```text
 lib/tela/
-  accounts.ex
-  accounts/
-    user.ex
-    user_token.ex
-    user_notifier.ex
+  profiles.ex
+  profiles/
+    profile.ex
 
   designs.ex
   designs/
@@ -77,25 +77,33 @@ lib/tela/
     kit.ex
 ```
 
+### Tela.Profiles
+
+- `create_profile(%{name: name})`
+- `get_profile(profile_id)`
+- `list_profiles()`
+
+Profiles are local, optional identities with a binary ID and name. They have no passwords, credentials, tokens, or authorization role. Profile selection is stored in the Phoenix session and identifies authorship only.
+
 ### Tela.Designs
 
 Public operations:
 
 ```elixir
 create(attrs)
-get_for_user(design_id, user_id)
+get(design_id)
 get_template(template_id)
-list_for_user(user_id, filters \\ %{})
+list(filters \\ %{})
 list_templates(filters \\ %{})
 save_document(input)
-rename(design_id, user_id, title)
-duplicate(design_id, user_id)
-delete(design_id, user_id)
+rename(design_id, title)
+duplicate(design_id, created_by_id \\ nil)
+delete(design_id)
 ```
 
-`create/1` accepts a preset or a public template. A preset creates a blank document. A template copy is independent and starts at revision 1.
+`create/1` accepts a preset or a public template and an optional `created_by_id`. A preset creates a blank document. A template copy is independent and starts at revision 1. All workspace participants can read and edit every design.
 
-`save_document/1` accepts `design_id`, `user_id`, `document`, `expected_revision`, and an optional thumbnail. It checks ownership, validates the document envelope and limits, updates only when the revision matches, increments `revision`, and recalculates `page_count`. A stale save returns `{:error, :revision_conflict}` without overwriting data. Thumbnail failure does not invalidate a saved document.
+`save_document/1` accepts `design_id`, `document`, `expected_revision`, and an optional thumbnail. It validates the document envelope and limits, updates only when the revision matches, increments `revision`, and recalculates `page_count`. A stale save returns `{:error, :revision_conflict}` without overwriting data. Thumbnail failure does not invalidate a saved document. Revision checks protect against stale tabs; they are not a permission system.
 
 ### Tela.Catalog
 
@@ -105,33 +113,33 @@ delete(design_id, user_id)
 
 ### Tela.Media
 
-- `upload(user_id, upload)`
-- `list_uploads(user_id)`
+- `upload(created_by_id, upload)`
+- `list_uploads()`
 - `search_external(query, provider, page \\ 1)`
-- `import_external(user_id, provider, external_id)`
+- `import_external(created_by_id, provider, external_id)`
 
-External import accepts only provider and external ID. The provider resolves the download URL server-side. Downloads require HTTPS, allowed hosts, supported MIME signatures, and bounded file sizes. Results are cached per user with a unique `(owner_id, source, external_id)` constraint. Provider failures can return partial search results.
+External import accepts only provider and external ID. The provider resolves the download URL server-side. Downloads require HTTPS, allowed hosts, supported MIME signatures, and bounded file sizes. Results are cached for the workspace with a unique `(source, external_id)` constraint. Uploads retain optional `created_by_id` attribution but are shared. Provider failures can return partial search results.
 
 ### Tela.Brands
 
-- `create_kit(user_id, attrs)`
-- `update_kit(kit_id, user_id, attrs)`
-- `delete_kit(kit_id, user_id)`
-- `list_kits(user_id)`
+- `create_kit(created_by_id, attrs)`
+- `update_kit(kit_id, attrs)`
+- `delete_kit(kit_id)`
+- `list_kits()`
 
-All operations enforce ownership.
+Brand Kits retain optional authorship and are shared with the whole workspace.
 
 ## 4. Persistence
 
-### users
+### profiles
 
-Generated with `mix phx.gen.auth`, plus `name`. No presence-specific avatar color.
+Local profiles contain a binary ID, name, and timestamps. They contain no credentials. Deleting a profile clears optional `created_by_id` references without deleting workspace content.
 
 ### designs
 
 ```text
 id              binary_id
-owner_id        users, null only for public templates
+created_by_id   profiles, nullable attribution
 title           string
 document        map
 width           integer
@@ -146,13 +154,13 @@ inserted_at     utc_datetime
 updated_at      utc_datetime
 ```
 
-Indexes cover `(owner_id, updated_at)`, `(is_template, category)`, and `(owner_id, is_template)`.
+Indexes cover `updated_at`, `(is_template, category)`, and `created_by_id`.
 
 ### brand_kits
 
 ```text
-id         binary_id
-owner_id   users, required
+id            binary_id
+created_by_id  profiles, nullable attribution
 name       string
 colors     map containing hex values
 fonts      map with heading and body families
@@ -164,7 +172,7 @@ timestamps
 
 ```text
 id            binary_id
-owner_id      users, required
+created_by_id  profiles, nullable attribution
 filename      string
 storage_path  string
 content_type  string
@@ -372,7 +380,7 @@ Component groups:
 
 Variants use semantic names such as `primary`, `secondary`, `outline`, `ghost`, and `danger`. States use attributes such as `data-state`, `data-selected`, `aria-invalid`, and `aria-disabled`. Classes supplied by callers extend the base style rather than accidentally removing it.
 
-Accessibility includes associated labels and errors, focus visibility, keyboard navigation, dialog focus trapping and restoration, Escape handling, reduced motion, and semantic native controls wherever possible. `flash_group` remains in `Layouts`. All LiveView templates use `Layouts.app` and `current_scope` where required.
+Accessibility includes associated labels and errors, focus visibility, keyboard navigation, dialog focus trapping and restoration, Escape handling, reduced motion, and semantic native controls wherever possible. `flash_group` remains in `Layouts`. All LiveView templates use `Layouts.app`; shared workspace screens may receive `current_profile` for the profile selector, but there is no authenticated `current_scope`.
 
 A development-only `/dev/styleguide` documents foundations, all component states, and product compositions. New shared components require declared attrs/slots, documentation, semantic tokens, accessibility behavior, styleguide coverage, and contract tests. Product-specific compositions stay near their features.
 
@@ -399,12 +407,12 @@ The direction is a contemporary graphic atelier: expressive dashboard, quiet edi
 
 ### Phase 1: foundation and projects
 
-- Authentication and owner scoping.
+- Local profiles and session-persisted profile selection.
 - SQLite configuration and migrations.
-- Design context and dashboard CRUD.
+- Shared design context and dashboard CRUD.
 - Semantic tokens, base components, and development styleguide.
 
-Acceptance: users can manage only their own projects, and the base component contracts pass.
+Acceptance: everyone on the trusted network can manage workspace projects, optional profiles identify authorship, and the base component contracts pass.
 
 ### Phase 2: vertical editor
 
@@ -448,7 +456,7 @@ Acceptance: one failed provider does not block local or remaining remote results
 - Agents do not modify existing tests. Any suspected incorrect test is reported to the orchestrator instead of edited.
 - Each agent receives a bounded scope and owned file set. Parallel work must not share files.
 - The orchestrator reviews diffs, checks the committed test baseline, runs verification, and integrates changes.
-- Elixir tests cover ownership, revisions, document limits, FTS behavior, MIME validation, providers, and component contracts.
+- Elixir tests cover profile selection, shared workspace behavior, revisions, document limits, FTS behavior, MIME validation, providers, and component contracts.
 - TypeScript tests cover migrations, page invariants, history, animation timing, deterministic frames, GIF scheduling, looping, and cancellation.
 - LiveView tests assert elements and attributes through LiveViewTest/LazyHTML, not raw HTML strings.
 - Browser checks cover the main design flow, keyboard interactions, responsive panels, export, and visual states.

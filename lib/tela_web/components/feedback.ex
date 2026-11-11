@@ -191,7 +191,7 @@ defmodule TelaWeb.Components.Feedback do
   end
 
   @doc "Displays a concise save lifecycle state."
-  attr :status, :atom, required: true, values: [:saved, :saving, :dirty, :error]
+  attr :status, :atom, required: true, values: [:saved, :saving, :dirty, :error, :conflict]
   attr :label, :string, default: nil
   attr :class, :any, default: nil
 
@@ -206,6 +206,7 @@ defmodule TelaWeb.Components.Feedback do
       <.spinner :if={@status == :saving} class="size-4" />
       <Lucideicons.circle_dot :if={@status == :dirty} class="size-4 text-warning" />
       <Lucideicons.circle_alert :if={@status == :error} class="size-4 text-danger" />
+      <Lucideicons.circle_alert :if={@status == :conflict} class="size-4 text-warning" />
       {@label || status_label(@status)}
     </span>
     """
@@ -227,4 +228,5 @@ defmodule TelaWeb.Components.Feedback do
   defp status_label(:saving), do: "Salvando…"
   defp status_label(:dirty), do: "Alterações não salvas"
   defp status_label(:error), do: "Falha ao salvar"
+  defp status_label(:conflict), do: "Conflito de revisão"
 end

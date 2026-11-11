@@ -19,6 +19,7 @@ defmodule TelaWeb.Router do
     pipe_through :browser
 
     live "/", DashboardLive, :index
+    live "/designs/:id", EditorLive, :show
     post "/profiles", ProfileController, :create
   end
 

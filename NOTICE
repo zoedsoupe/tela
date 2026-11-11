@@ -1,0 +1,21 @@
+Tela includes code adapted from Doory:
+https://github.com/shaongitbd/doory
+
+Doory by Siam, creator and maintainer of Doory, https://github.com/shaongitbd/doory
+Copyright (c) 2026 Siam and the Doory contributors.
+
+The Doory Attribution Assurance License is retained at licenses/Doory-LICENSE.
+Its original notice is retained at licenses/Doory-NOTICE.
+The application shell displays the required Doory credit.
+
+Adapted modules:
+- assets/js/editor/export/gif.ts
+- assets/js/editor/export/gif_pixels.ts
+- assets/js/editor/export/gif_protocol.ts
+- assets/js/editor/export/gifenc.d.ts
+
+Third-party browser libraries retain their own licenses:
+- Fabric.js (MIT)
+- jsPDF (MIT)
+- gifenc (MIT), Copyright (c) 2017 Matt DesLauriers
+- Lucide (ISC), with derived Feather icons under MIT

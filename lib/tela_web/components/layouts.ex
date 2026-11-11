@@ -79,6 +79,17 @@ defmodule TelaWeb.Layouts do
         {render_slot(@inner_block)}
       </main>
 
+      <footer class="border-t border-line bg-surface px-4 py-4 text-center text-xs text-muted sm:px-8">
+        <a
+          href="https://github.com/shaongitbd/doory"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+        >
+          Doory by Siam, creator and maintainer of Doory, https://github.com/shaongitbd/doory
+        </a>
+      </footer>
+
       <.flash_group flash={@flash} />
     </div>
     """

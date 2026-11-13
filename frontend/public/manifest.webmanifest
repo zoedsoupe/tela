@@ -1,0 +1,21 @@
+{
+  "name": "Tela",
+  "short_name": "Tela",
+  "description": "Editor de design no navegador.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#f9f7ff",
+  "theme_color": "#f9f7ff",
+  "categories": ["design", "graphics", "productivity"],
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Novo design", "short_name": "Novo", "url": "/create", "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }] }
+  ],
+  "lang": "pt-BR"
+}

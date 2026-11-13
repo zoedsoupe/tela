@@ -1,0 +1,102 @@
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+}
+
+.harness-brand,
+.harness-actions {
+  display: flex;
+  align-items: center;
+}
+
+.harness-brand {
+  gap: 10px;
+  min-width: 0;
+}
+
+.harness-logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 8px;
+  color: var(--color-brand);
+  font: 800 18px var(--font-display);
+  letter-spacing: -0.02em;
+}
+
+.harness-logo i {
+  display: inline-block;
+  width: 22px;
+  height: 22px;
+  border-radius: 7px;
+  background: var(--color-brand);
+}
+
+.harness-credit {
+  max-width: 320px;
+  color: var(--color-text-muted);
+  font-size: 9px;
+  line-height: 1.25;
+  text-decoration: none;
+}
+
+.harness-credit:hover {
+  color: var(--color-text);
+  text-decoration: underline;
+}
+
+.harness-actions {
+  gap: 2px;
+}
+
+.harness-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+
+.harness-btn:hover {
+  background: var(--color-bg-muted);
+  color: var(--color-text);
+}
+
+.harness-loading {
+  display: grid;
+  height: 100%;
+  place-items: center;
+  color: var(--color-text-muted);
+  font: 500 14px var(--font-sans);
+}
+
+@media (max-width: 900px) {
+  .harness-credit {
+    max-width: 210px;
+    font-size: 8px;
+  }
+}
+
+@media (max-width: 680px) {
+  .harness-credit {
+    max-width: 155px;
+    font-size: 7px;
+  }
+
+  .harness-logo b {
+    display: none;
+  }
+}

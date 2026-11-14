@@ -3,14 +3,15 @@ import styles from "./ErrorBoundary.module.css"
 
 interface State {
   failed: boolean
+  message: string | null
 }
 
 /** Last line of defence for errors thrown outside the router (providers, bootstrap). */
 export class ErrorBoundary extends Component<{ children: ReactNode }, State> {
-  state: State = { failed: false }
+  state: State = { failed: false, message: null }
 
-  static getDerivedStateFromError(): State {
-    return { failed: true }
+  static getDerivedStateFromError(error: Error): State {
+    return { failed: true, message: error.message }
   }
 
   componentDidCatch(error: Error, info: ErrorInfo): void {
@@ -23,6 +24,7 @@ export class ErrorBoundary extends Component<{ children: ReactNode }, State> {
       <div className={styles.page} role="alert">
         <h1 className={styles.title}>Algo deu errado</h1>
         <p className={styles.text}>O Tela encontrou um problema inesperado. Recarregar a página costuma resolver. Seus designs salvos continuam seguros.</p>
+        {this.state.message ? <pre>{this.state.message}</pre> : null}
         <button type="button" className={styles.button} onClick={() => window.location.reload()}>
           
           Recarregar página</button>

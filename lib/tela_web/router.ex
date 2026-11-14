@@ -35,6 +35,8 @@ defmodule TelaWeb.Router do
 
     get "/uploads/design-thumbnails/:id", DesignController, :thumbnail
     get "/uploads/:id", MediaController, :show
+    get "/harness", SPAController, :index
+    get "/presenter-view.html", SPAController, :presenter
     live "/", DashboardLive, :index
     live "/brand-kits", BrandKitsLive, :index
     live "/designs/:id", EditorLive, :show

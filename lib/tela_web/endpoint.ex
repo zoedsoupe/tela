@@ -28,6 +28,12 @@ defmodule TelaWeb.Endpoint do
     raise_on_missing_only: code_reloading?
 
   if Mix.env() == :dev do
+    plug Plug.Static,
+      at: "/",
+      from: "frontend/dist",
+      gzip: false,
+      only: ~w(assets icons index.html presenter-view.html manifest.webmanifest robots.txt og-image.png)
+
     plug Tidewave
   end
 

@@ -1,7 +1,7 @@
 import { type ReactNode, useCallback, useLayoutEffect, useRef } from 'react'
 import styles from "./Toolbar.module.css"
 
-const ITEM = "botão:not(:disabled), input:not(:disabled):not([type=\"hidden\"]), [role=\"slider\"], [movimento de dados]"
+const ITEM = 'button:not(:disabled), input:not(:disabled):not([type="hidden"]), [role="slider"], [data-roving]'
 
 interface ToolbarProps {
   label: string

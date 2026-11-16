@@ -16,6 +16,11 @@ defmodule Tela.Designs.Design do
           page_count: integer() | nil,
           preset_id: String.t() | nil,
           category: String.t() | nil,
+          slug: String.t() | nil,
+          description: String.t() | nil,
+          tags: String.t(),
+          use_count: non_neg_integer(),
+          is_featured: boolean(),
           folder_id: Ecto.UUID.t() | nil,
           starred: boolean(),
           trashed_at: DateTime.t() | nil,
@@ -39,6 +44,11 @@ defmodule Tela.Designs.Design do
     field :page_count, :integer
     field :preset_id, :string
     field :category, :string
+    field :slug, :string
+    field :description, :string
+    field :tags, :string, default: "[]"
+    field :use_count, :integer, default: 0
+    field :is_featured, :boolean, default: false
     field :starred, :boolean, default: false
     field :trashed_at, :utc_datetime
     field :is_template, :boolean, default: false
@@ -64,6 +74,11 @@ defmodule Tela.Designs.Design do
       :page_count,
       :preset_id,
       :category,
+      :slug,
+      :description,
+      :tags,
+      :use_count,
+      :is_featured,
       :is_template,
       :revision,
       :thumbnail_path,
@@ -78,6 +93,7 @@ defmodule Tela.Designs.Design do
     |> validate_number(:height, greater_than: 0)
     |> validate_number(:page_count, greater_than: 0)
     |> validate_number(:revision, greater_than: 0)
+    |> validate_number(:use_count, greater_than_or_equal_to: 0)
     |> foreign_key_constraint(:created_by_id)
     |> foreign_key_constraint(:updated_by_id)
     |> foreign_key_constraint(:folder_id)

@@ -1,0 +1,214 @@
+{
+  "version": 1,
+  "templates": [
+    {
+      "slug": "bold-sale-announcement",
+      "title": "Anúncio de promoção em destaque",
+      "category": "social-media",
+      "tags": [
+        "promoção",
+        "instagram",
+        "oferta",
+        "desconto",
+        "loja",
+        "moda"
+      ],
+      "description": "Um post de promoção em destaque: uma pessoa em uma forma laranja, a frase \"Oferta especial\" em letra cursiva sobre um título forte, um selo de desconto e uma faixa escura com contato e botão de compra.",
+      "preset": "instagram-post",
+      "is_featured": true,
+      "fonts": [
+        "Great Vibes",
+        "Poppins"
+      ]
+    },
+    {
+      "slug": "serif-quote-card",
+      "title": "Cartão de citação serifado",
+      "category": "social-media",
+      "tags": [
+        "citação",
+        "instagram",
+        "minimalista",
+        "preto",
+        "tipografia",
+        "inspiração"
+      ],
+      "description": "Um post minimalista com citação: fundo preto, texto serifado centralizado com uma palavra em maiúsculas e outra em itálico, além de um pequeno perfil na base.",
+      "preset": "instagram-post",
+      "is_featured": false,
+      "fonts": [
+        "Crimson Text"
+      ]
+    },
+    {
+      "slug": "rooftop-event-story",
+      "title": "Story de evento no terraço",
+      "category": "social-media",
+      "tags": [
+        "story",
+        "evento",
+        "instagram",
+        "festa",
+        "música",
+        "pôr do sol",
+        "minimalista"
+      ],
+      "description": "Um story com foto em tela cheia: pequenas legendas no topo, título grande em minúsculas com horário e uma linha de texto, além de uma faixa de datas com o dia em destaque.",
+      "preset": "instagram-story",
+      "is_featured": true,
+      "fonts": [
+        "Manrope"
+      ]
+    },
+    {
+      "slug": "modern-pitch-deck",
+      "title": "Apresentação moderna para investidores",
+      "category": "presentations",
+      "tags": [
+        "apresentação",
+        "pitch",
+        "startup",
+        "material de apresentação",
+        "negócios",
+        "investidor",
+        "série A"
+      ],
+      "description": "Uma apresentação para investidores em branco, preto e azul: capa com uma foto, o problema em três cartões e o mercado em círculos concêntricos.",
+      "preset": "presentation",
+      "is_featured": true,
+      "fonts": [
+        "Inter"
+      ]
+    },
+    {
+      "slug": "night-bloom-concert-poster",
+      "title": "Cartaz do show Night Bloom",
+      "category": "posters",
+      "tags": [
+        "cartaz",
+        "show",
+        "turnê",
+        "festival",
+        "música",
+        "show ao vivo",
+        "evento",
+        "impressão"
+      ],
+      "description": "Um cartaz de turnê para impressão em 18 × 24 pol.: o artista em letras enormes com gradiente entre duas palavras contornadas, cidade, local e data em uma faixa quente, com participação especial abaixo.",
+      "preset": "",
+      "is_featured": true,
+      "fonts": [
+        "Archivo",
+        "Great Vibes",
+        "Oswald"
+      ]
+    },
+    {
+      "slug": "grand-opening-flyer",
+      "title": "Folheto de inauguração",
+      "category": "flyers",
+      "tags": [
+        "folheto",
+        "inauguração",
+        "convite",
+        "café",
+        "butique",
+        "loja",
+        "impressão",
+        "minimalista",
+        "elegante"
+      ],
+      "description": "Um folheto elegante de inauguração no formato Carta: a palavra \"Grande\" em letra cursiva sobre \"Inauguração\" em serifas espaçadas, com horário, dia e local em três colunas.",
+      "preset": "letter",
+      "is_featured": false,
+      "fonts": [
+        "Crimson Text",
+        "Great Vibes",
+        "Pinyon Script"
+      ]
+    },
+    {
+      "slug": "botanical-celebration-invitation",
+      "title": "Convite botânico para celebração",
+      "category": "invitations",
+      "tags": [
+        "casamento",
+        "convite",
+        "botânico",
+        "elegante",
+        "minimalista",
+        "preto e branco"
+      ],
+      "description": "Um convite de casamento minimalista em 5 × 7 pol.: ramo desenhado em traço fino, nomes em maiúsculas serifadas e espaçadas com um \"e\" cursivo, e a data em uma linha dividida por fios delicados.",
+      "preset": "",
+      "is_featured": false,
+      "fonts": [
+        "Crimson Text",
+        "Great Vibes",
+        "Playfair Display"
+      ]
+    },
+    {
+      "slug": "modern-resume",
+      "title": "Currículo moderno",
+      "category": "resumes",
+      "tags": [
+        "currículo",
+        "cv",
+        "trabalho",
+        "carreira",
+        "a4",
+        "foto",
+        "minimalista",
+        "duas colunas"
+      ],
+      "description": "Um currículo A4 elegante em duas colunas com foto circular: nome em maiúsculas espaçadas, contatos com ícones e experiência em uma linha do tempo delicada.",
+      "preset": "a4",
+      "is_featured": false,
+      "fonts": [
+        "Inter",
+        "Josefin Sans"
+      ]
+    },
+    {
+      "slug": "bold-youtube-thumbnail",
+      "title": "Miniatura de YouTube em destaque",
+      "category": "youtube",
+      "tags": [
+        "youtube",
+        "miniatura",
+        "vídeo",
+        "desafio",
+        "vlog"
+      ],
+      "description": "Uma miniatura de desafio em destaque: degradê do azul escuro ao violeta com faixas de luz, rosto à direita, \"30 dias\" em amarelo e uma etiqueta vermelha.",
+      "preset": "youtube-thumbnail",
+      "is_featured": false,
+      "fonts": [
+        "Anton"
+      ]
+    },
+    {
+      "slug": "clean-business-card",
+      "title": "Cartão de visita minimalista",
+      "category": "business",
+      "tags": [
+        "cartão de visita",
+        "contato",
+        "impressão",
+        "elegante",
+        "luxo",
+        "preto",
+        "código QR"
+      ],
+      "description": "Um cartão de visita elegante, frente e verso: capa em carvão com um nome cursivo discreto ao fundo, seu nome em maiúsculas espaçadas e contatos com código QR no verso.",
+      "preset": "business-card",
+      "is_featured": false,
+      "fonts": [
+        "Crimson Text",
+        "Great Vibes",
+        "Inter"
+      ]
+    }
+  ]
+}

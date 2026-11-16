@@ -35,6 +35,7 @@ defmodule TelaWeb.Router do
 
     get "/uploads/design-thumbnails/:id", DesignController, :thumbnail
     get "/uploads/:id", MediaController, :show
+    get "/template-assets/:kind/:filename", TemplateController, :asset
     get "/harness", SPAController, :index
     get "/presenter-view.html", SPAController, :presenter
     live "/", DashboardLive, :index
@@ -72,9 +73,11 @@ defmodule TelaWeb.Router do
     patch "/folders/:id", FolderController, :update
     delete "/folders/:id", FolderController, :delete
 
+    get "/template-categories", TemplateController, :categories
     get "/templates", TemplateController, :index
-    get "/templates/:id", TemplateController, :show
-    get "/presets", TemplateController, :presets
+    post "/templates/:slug/use", TemplateController, :use_template
+    get "/templates/:slug", TemplateController, :show
+    get "/size-presets", TemplateController, :size_presets
 
     get "/elements/packs", ElementController, :packs
     get "/elements", ElementController, :index

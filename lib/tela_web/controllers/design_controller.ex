@@ -55,6 +55,33 @@ defmodule TelaWeb.DesignController do
     end
   end
 
+  def bulk(conn, %{"ids" => ids, "action" => action} = params) do
+    if action == "move" and not Map.has_key?(params, "folder") do
+      error(conn, :unprocessable_entity, "invalid_folder", "Informe uma pasta válida.")
+    else
+      case Designs.bulk(ids, action, Map.get(params, "folder")) do
+        {:ok, affected} -> json(conn, %{affected: affected})
+        {:error, reason} -> render_error(conn, reason)
+      end
+    end
+  end
+
+  def bulk(conn, _params),
+    do:
+      error(
+        conn,
+        :unprocessable_entity,
+        "invalid_request",
+        "Informe os designs e a ação para aplicar em lote."
+      )
+
+  def empty_trash(conn, _params) do
+    case Designs.empty_trash() do
+      {:ok, affected} -> json(conn, %{affected: affected})
+      {:error, reason} -> render_error(conn, reason)
+    end
+  end
+
   def duplicate(conn, %{"id" => id}) do
     case Designs.duplicate(id, profile_id(conn)) do
       {:ok, design} ->
@@ -182,6 +209,30 @@ defmodule TelaWeb.DesignController do
         "not_trashed",
         "Somente designs na lixeira podem ser excluídos permanentemente."
       )
+
+  defp render_error(conn, :already_trashed),
+    do: error(conn, :conflict, "design_trashed", "O design já está na lixeira.")
+
+  defp render_error(conn, :invalid_ids),
+    do:
+      error(
+        conn,
+        :unprocessable_entity,
+        "invalid_ids",
+        "Informe uma lista válida de IDs de designs."
+      )
+
+  defp render_error(conn, :invalid_action),
+    do:
+      error(
+        conn,
+        :unprocessable_entity,
+        "invalid_action",
+        "A ação precisa ser star, unstar, trash, restore ou move."
+      )
+
+  defp render_error(conn, :invalid_folder),
+    do: error(conn, :unprocessable_entity, "invalid_folder", "Informe uma pasta válida.")
 
   defp render_error(conn, :unknown_preset),
     do: error(conn, :unprocessable_entity, "unknown_preset", "Preset não encontrado.")

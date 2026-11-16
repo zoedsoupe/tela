@@ -2,6 +2,8 @@ defmodule Tela.DesignsTest do
   use Tela.DataCase, async: false
   import Tela.ProfilesFixtures
   alias Tela.Designs
+  alias Tela.Designs.Design
+  alias Tela.Repo
 
   setup do
     %{profile: profile_fixture(), collaborator: profile_fixture()}
@@ -169,6 +171,74 @@ defmodule Tela.DesignsTest do
     assert {:ok, _} = Designs.trash(starred.id)
     assert {:ok, _} = Designs.permanently_delete(starred.id)
     assert {:error, :not_found} = Designs.get(starred.id)
+  end
+
+  test "applies bulk actions to a validated cohort" do
+    {:ok, first} = Designs.create(%{title: "Primeiro", preset_id: "story"})
+    {:ok, second} = Designs.create(%{title: "Segundo", preset_id: "story"})
+    {:ok, folder} = Designs.create_folder(%{name: "Campanhas"})
+
+    assert {:ok, 2} = Designs.bulk([first.id, second.id], "star")
+    assert {:ok, 2} = Designs.bulk([first.id, second.id], "move", folder.id)
+    assert {:ok, 1} = Designs.bulk([second.id], "unstar")
+    assert {:ok, 1} = Designs.bulk([second.id], "move", nil)
+
+    assert {:ok, moved_first} = Designs.get(first.id)
+    assert moved_first.folder_id == folder.id
+    assert moved_first.starred
+
+    assert {:ok, moved_second} = Designs.get(second.id)
+    assert is_nil(moved_second.folder_id)
+    refute moved_second.starred
+
+    assert {:ok, 1} = Designs.bulk([first.id], "trash")
+    assert {:error, :already_trashed} = Designs.bulk([first.id, second.id], "trash")
+    assert {:error, :not_trashed} = Designs.bulk([first.id, second.id], "restore")
+
+    assert {:ok, still_active} = Designs.get(second.id)
+    assert is_nil(still_active.trashed_at)
+
+    assert {:ok, 1} = Designs.bulk([first.id], "restore")
+    assert {:ok, restored} = Designs.get(first.id)
+    assert is_nil(restored.trashed_at)
+  end
+
+  test "validates bulk ids, actions, folders, and templates" do
+    {:ok, design} = Designs.create(%{title: "Design", preset_id: "story"})
+    {:ok, template} = Designs.create(%{title: "Template", preset_id: "story"})
+
+    template
+    |> Design.changeset(%{is_template: true})
+    |> Repo.update!()
+
+    assert {:error, :invalid_ids} = Designs.bulk(["not-a-uuid"], "star")
+    assert {:error, :not_found} = Designs.bulk([Ecto.UUID.generate()], "star")
+    assert {:error, :invalid_action} = Designs.bulk([design.id], "delete")
+    assert {:error, :invalid_folder} = Designs.bulk([design.id], "move", "not-a-uuid")
+    assert {:error, :not_found} = Designs.bulk([design.id], "move", Ecto.UUID.generate())
+    assert {:error, :template_read_only} = Designs.bulk([template.id], "star")
+  end
+
+  test "emptying trash permanently deletes only trashed non-template designs" do
+    {:ok, trashed} = Designs.create(%{title: "Na lixeira", preset_id: "story"})
+    {:ok, active} = Designs.create(%{title: "Ativo", preset_id: "story"})
+    {:ok, template} = Designs.create(%{title: "Template", preset_id: "story"})
+
+    assert {:ok, _} = Designs.trash(trashed.id)
+
+    template
+    |> Design.changeset(%{
+      is_template: true,
+      trashed_at: DateTime.utc_now() |> DateTime.truncate(:second)
+    })
+    |> Repo.update!()
+
+    assert {:ok, 1} = Designs.empty_trash()
+    assert {:error, :not_found} = Designs.get(trashed.id)
+    assert {:ok, found_active} = Designs.get(active.id)
+    assert is_nil(found_active.trashed_at)
+    assert {:ok, found_template} = Designs.get(template.id)
+    assert found_template.is_template
   end
 
   test "snapshots a document and restores it as a new optimistic revision" do

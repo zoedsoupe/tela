@@ -212,6 +212,68 @@ defmodule Tela.Designs do
     end
   end
 
+  @spec bulk([binary()], String.t() | atom(), binary() | nil) :: result(non_neg_integer())
+  def bulk(ids, action, folder_id \\ nil)
+
+  def bulk(ids, action, folder_id) when is_list(ids) do
+    with {:ok, ids} <- normalize_design_ids(ids),
+         {:ok, action} <- normalize_bulk_action(action),
+         {:ok, folder_id} <- validate_bulk_folder(action, folder_id) do
+      Repo.transaction(fn ->
+        with {:ok, designs} <- fetch_bulk_designs(ids),
+             :ok <- validate_bulk_state(designs, action),
+             {:ok, affected} <- apply_bulk_action(ids, action, folder_id) do
+          affected
+        else
+          {:error, reason} -> Repo.rollback(reason)
+        end
+      end)
+      |> case do
+        {:ok, affected} -> {:ok, affected}
+        {:error, reason} -> {:error, reason}
+      end
+    end
+  end
+
+  def bulk(_ids, _action, _folder_id), do: {:error, :invalid_ids}
+
+  @spec empty_trash() :: result(non_neg_integer())
+  def empty_trash do
+    case Repo.transaction(fn ->
+           designs =
+             Repo.all(
+               from design in Design,
+                 where: not is_nil(design.trashed_at) and not design.is_template
+             )
+
+           design_ids = Enum.map(designs, & &1.id)
+
+           version_thumbnail_paths =
+             Repo.all(
+               from version in DesignVersion,
+                 where: version.design_id in ^design_ids,
+                 select: version.thumbnail_path
+             )
+
+           {affected, _} =
+             Repo.delete_all(
+               from design in Design,
+                 where:
+                   design.id in ^design_ids and not is_nil(design.trashed_at) and
+                     not design.is_template
+             )
+
+           {affected, Enum.map(designs, & &1.thumbnail_path) ++ version_thumbnail_paths}
+         end) do
+      {:ok, {affected, thumbnail_paths}} ->
+        Enum.each(thumbnail_paths, &remove_thumbnail/1)
+        {:ok, affected}
+
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
   @spec list_folders() :: result([Folder.t()])
   def list_folders do
     folders =
@@ -533,6 +595,92 @@ defmodule Tela.Designs do
   defp editable(%Design{is_template: true}), do: {:error, :template_read_only}
   defp editable(%Design{trashed_at: nil}), do: :ok
   defp editable(%Design{}), do: {:error, :trashed}
+
+  defp normalize_design_ids(ids) do
+    Enum.reduce_while(ids, {:ok, []}, fn id, {:ok, acc} ->
+      case Ecto.UUID.cast(id) do
+        {:ok, uuid} -> {:cont, {:ok, [uuid | acc]}}
+        :error -> {:halt, {:error, :invalid_ids}}
+      end
+    end)
+    |> case do
+      {:ok, ids} -> {:ok, ids |> Enum.reverse() |> Enum.uniq()}
+      error -> error
+    end
+  end
+
+  defp normalize_bulk_action(action) when action in [:star, :unstar, :trash, :restore, :move],
+    do: {:ok, action}
+
+  defp normalize_bulk_action("star"), do: {:ok, :star}
+  defp normalize_bulk_action("unstar"), do: {:ok, :unstar}
+  defp normalize_bulk_action("trash"), do: {:ok, :trash}
+  defp normalize_bulk_action("restore"), do: {:ok, :restore}
+  defp normalize_bulk_action("move"), do: {:ok, :move}
+  defp normalize_bulk_action(_), do: {:error, :invalid_action}
+
+  defp validate_bulk_folder(:move, nil), do: {:ok, nil}
+
+  defp validate_bulk_folder(:move, folder_id) when is_binary(folder_id) do
+    case Ecto.UUID.cast(folder_id) do
+      {:ok, id} ->
+        case Repo.get(Folder, id) do
+          %Folder{} = folder -> {:ok, folder.id}
+          nil -> {:error, :not_found}
+        end
+
+      :error ->
+        {:error, :invalid_folder}
+    end
+  end
+
+  defp validate_bulk_folder(:move, _), do: {:error, :invalid_folder}
+  defp validate_bulk_folder(_action, _folder_id), do: {:ok, nil}
+
+  defp fetch_bulk_designs(ids) do
+    designs = Repo.all(from design in Design, where: design.id in ^ids)
+
+    cond do
+      length(designs) != length(ids) -> {:error, :not_found}
+      Enum.any?(designs, & &1.is_template) -> {:error, :template_read_only}
+      true -> {:ok, designs}
+    end
+  end
+
+  defp validate_bulk_state(designs, :trash) do
+    if Enum.any?(designs, &(not is_nil(&1.trashed_at))),
+      do: {:error, :already_trashed},
+      else: :ok
+  end
+
+  defp validate_bulk_state(designs, :restore) do
+    if Enum.any?(designs, &is_nil(&1.trashed_at)),
+      do: {:error, :not_trashed},
+      else: :ok
+  end
+
+  defp validate_bulk_state(_designs, _action), do: :ok
+
+  defp apply_bulk_action(ids, action, folder_id) do
+    now = DateTime.utc_now() |> DateTime.truncate(:second)
+
+    changes =
+      case action do
+        :star -> [starred: true, updated_at: now]
+        :unstar -> [starred: false, updated_at: now]
+        :trash -> [trashed_at: now, updated_at: now]
+        :restore -> [trashed_at: nil, updated_at: now]
+        :move -> [folder_id: folder_id, updated_at: now]
+      end
+
+    {affected, _} =
+      Repo.update_all(
+        from(design in Design, where: design.id in ^ids and not design.is_template),
+        set: changes
+      )
+
+    {:ok, affected}
+  end
 
   defp apply_filters(query, filters) do
     trashed = filter_value(filters, :trashed) in [true, "true", "1", 1]

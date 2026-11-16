@@ -1,6 +1,8 @@
 defmodule TelaWeb.DesignControllerTest do
   use TelaWeb.ConnCase, async: false
 
+  alias Tela.Designs
+
   setup %{conn: conn} do
     uploads_dir = Path.join("tmp", "design-thumbnails-#{System.unique_integer([:positive])}")
     Application.put_env(:tela, :uploads_dir, uploads_dir)
@@ -80,6 +82,91 @@ defmodule TelaWeb.DesignControllerTest do
 
     assert %{"error" => %{"code" => "not_found"}} =
              get(conn, "/api/designs/#{design["id"]}") |> json_response(404)
+  end
+
+  test "applies bulk actions and empties only the trash cohort", %{conn: conn} do
+    first = create_design(conn)
+    second = create_design(conn)
+    {:ok, folder} = Designs.create_folder(%{name: "Campanhas"})
+
+    assert %{"affected" => 2} =
+             post(conn, "/api/designs/bulk", %{
+               ids: [first["id"], second["id"]],
+               action: "star"
+             })
+             |> json_response(200)
+
+    assert %{"affected" => 2} =
+             post(conn, "/api/designs/bulk", %{
+               ids: [first["id"], second["id"]],
+               action: "move",
+               folder: folder.id
+             })
+             |> json_response(200)
+
+    assert %{"affected" => 1} =
+             conn
+             |> put_req_header("content-type", "application/json")
+             |> post(
+               "/api/designs/bulk",
+               JSON.encode!(%{ids: [second["id"]], action: "move", folder: nil})
+             )
+             |> json_response(200)
+
+    assert response(delete(conn, "/api/designs/#{first["id"]}"), 204)
+
+    assert %{"error" => %{"code" => "design_trashed", "message" => message}} =
+             post(conn, "/api/designs/bulk", %{
+               ids: [first["id"], second["id"]],
+               action: "trash"
+             })
+             |> json_response(409)
+
+    assert is_binary(message)
+
+    assert %{"affected" => 1} = delete(conn, "/api/designs/trash") |> json_response(200)
+
+    assert %{"error" => %{"code" => "not_found"}} =
+             get(conn, "/api/designs/#{first["id"]}") |> json_response(404)
+
+    assert %{"design" => %{"id" => id}} =
+             get(conn, "/api/designs/#{second["id"]}") |> json_response(200)
+
+    assert id == second["id"]
+  end
+
+  test "returns structured validation errors for bulk input", %{conn: conn} do
+    design = create_design(conn)
+
+    assert %{"error" => %{"code" => "invalid_ids", "message" => message}} =
+             post(conn, "/api/designs/bulk", %{ids: ["invalid"], action: "star"})
+             |> json_response(422)
+
+    assert is_binary(message)
+
+    assert %{"error" => %{"code" => "invalid_folder"}} =
+             post(conn, "/api/designs/bulk", %{ids: [design["id"]], action: "move"})
+             |> json_response(422)
+
+    assert %{"error" => %{"code" => "invalid_folder"}} =
+             post(conn, "/api/designs/bulk", %{
+               ids: [design["id"]],
+               action: "move",
+               folder: "invalid"
+             })
+             |> json_response(422)
+
+    assert %{"error" => %{"code" => "not_found"}} =
+             post(conn, "/api/designs/bulk", %{
+               ids: [design["id"]],
+               action: "move",
+               folder: Ecto.UUID.generate()
+             })
+             |> json_response(404)
+
+    assert %{"error" => %{"code" => "invalid_action"}} =
+             post(conn, "/api/designs/bulk", %{ids: [design["id"]], action: "delete"})
+             |> json_response(422)
   end
 
   test "returns structured validation and not-found errors", %{conn: conn} do

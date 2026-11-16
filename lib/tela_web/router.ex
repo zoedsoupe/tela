@@ -54,6 +54,8 @@ defmodule TelaWeb.Router do
 
     get "/designs", DesignController, :index
     post "/designs", DesignController, :create
+    post "/designs/bulk", DesignController, :bulk
+    delete "/designs/trash", DesignController, :empty_trash
     get "/designs/:design_id/versions", VersionController, :index
     post "/designs/:design_id/versions", VersionController, :create
     get "/designs/:design_id/versions/:id", VersionController, :show

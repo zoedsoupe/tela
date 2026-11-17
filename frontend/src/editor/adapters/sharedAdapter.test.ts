@@ -18,6 +18,15 @@ describe('SharedAdapter', () => {
     expect(adapter.services.versions).toBeNull()
   })
 
+  it('does not expose version history to a comment link', () => {
+    const adapter = createSharedAdapter({ token: 'token-comment', designId: 'd1', role: 'comment', revision: 1, title: 'Shared', authorName: 'Pessoa' })
+
+    expect(adapter.services.versions).toBeNull()
+    expect(adapter.services.comments?.resolve).toBeUndefined()
+    expect(adapter.services.comments?.move).toBeUndefined()
+    expect(adapter.services.comments?.remove).toBeUndefined()
+  })
+
   it('renames and saves an edit link in separate expected-revision requests', async () => {
     const document = createBlankDocument(100, 100)
     const bodies: unknown[] = []
@@ -40,6 +49,41 @@ describe('SharedAdapter', () => {
       { document, expected_revision: 2 },
     ])
     expect(result.revision).toBe(3)
+  })
+
+  it('lists and creates versions through the edit token only', async () => {
+    const summary = { id: 'v1', label: 'Inicial', is_auto: false, page_count: 1, thumbnail_url: null, created_at: '2026-11-17T12:00:00Z' }
+    const bodies: unknown[] = []
+    server.use(
+      mswHttp.get('*/api/shared/token-edit/versions', () => HttpResponse.json({ versions: [summary] })),
+      mswHttp.post('*/api/shared/token-edit/versions', async ({ request }) => {
+        bodies.push(await request.json())
+        return HttpResponse.json({ version: { ...summary, id: 'v2', label: 'Revisão' } }, { status: 201 })
+      }),
+    )
+    const adapter = createSharedAdapter({ token: 'token-edit', designId: 'd1', role: 'edit', revision: 1, title: 'Shared', authorName: 'Pessoa' })
+
+    await expect(adapter.services.versions?.list()).resolves.toEqual([summary])
+    await expect(adapter.services.versions?.create('Revisão')).resolves.toMatchObject({ id: 'v2', label: 'Revisão' })
+    expect(bodies).toEqual([{ label: 'Revisão' }])
+  })
+
+  it('attributes shared comments to the local guest name without loading a workspace profile', async () => {
+    const comment = { id: 'c1', author: { id: null, name: 'Pessoa', avatar_url: null }, body: 'Oi', page_id: null, x: null, y: null, parent: null, resolved: false, created_at: '2026-11-17T12:00:00Z' }
+    let body: unknown
+    server.use(
+      mswHttp.get('*/api/shared/token-comment/comments', () => HttpResponse.json([comment])),
+      mswHttp.post('*/api/shared/token-comment/comments', async ({ request }) => {
+        body = await request.json()
+        return HttpResponse.json(comment, { status: 201 })
+      }),
+    )
+    const adapter = createSharedAdapter({ token: 'token-comment', designId: 'd1', role: 'comment', revision: 1, title: 'Shared', authorName: '  Pessoa  ' })
+
+    await expect(adapter.services.comments?.list()).resolves.toEqual([comment])
+    await expect(adapter.services.comments?.create({ body: 'Oi' })).resolves.toEqual(comment)
+    await expect(adapter.services.comments?.viewer?.()).resolves.toBeNull()
+    expect(body).toEqual({ body: 'Oi', author_name: 'Pessoa' })
   })
 
   it('restores a version through the edit token with its current revision', async () => {

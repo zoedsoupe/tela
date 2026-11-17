@@ -222,17 +222,22 @@ export type UserFontErrorCode = 'variant_exists' | 'font_name_taken' | 'font_lim
 
 export type ShareRole = 'view' | 'comment' | 'edit'
 
+export type ShareExpiry = 'never' | '1d' | '7d' | '30d'
+
 export interface ShareLink {
   id: string
   token: string
   role: ShareRole
   url: string
   is_active: boolean
+  expires_at: string | null
+  revoked_at: string | null
   created_at: string
 }
 
 export interface ShareLinkInput {
   role: ShareRole
+  expires_in: ShareExpiry
 }
 
 export interface CommentT {

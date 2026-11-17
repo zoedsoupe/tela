@@ -1,4 +1,4 @@
-import { commentsApi, designsApi, elementsApi, fontsApi, isApiError, profilesApi, sharedApi, templatesApi } from "@/lib/api"
+import { commentsApi, elementsApi, fontsApi, isApiError, sharedApi, templatesApi } from "@/lib/api"
 import type { EditorAdapter, SaveInput } from "@/types/adapter"
 import type { CommentInput, CommentT, FontFamily, Page, ShareRole, TemplateCategory, TemplateDetail, TemplateSummary, VersionSummary } from "@/types/api"
 import type { DoryDocument } from "@/types/document"
@@ -19,12 +19,14 @@ export interface SharedAdapterOptions {
   role: ShareRole
   revision: number
   title: string
+  authorName?: string
   fonts?: readonly FontFamily[]
 }
 
 /** Capability-limited adapter for a bearer share link. */
 export function createSharedAdapter(options: SharedAdapterOptions): EditorAdapter {
   const canEdit = options.role === 'edit'
+  const authorName = options.authorName?.trim() ?? ''
   let revision = options.revision
   let title = options.title
 
@@ -64,8 +66,8 @@ export function createSharedAdapter(options: SharedAdapterOptions): EditorAdapte
       },
       brand: null,
       versions: canEdit ? {
-        list: (): Promise<VersionSummary[]> => designsApi.versions.list(options.designId),
-        create: (label) => designsApi.versions.create(options.designId, label),
+        list: (): Promise<VersionSummary[]> => sharedApi.versions.list(options.token),
+        create: (label) => sharedApi.versions.create(options.token, label),
         restore: async (versionId): Promise<DoryDocument> => {
           const restored = await sharedApi.restoreVersion(options.token, versionId, revision)
           revision = restored.revision
@@ -74,17 +76,14 @@ export function createSharedAdapter(options: SharedAdapterOptions): EditorAdapte
         },
       } : null,
       sharing: null,
+      // Guests may read and create threads. Resolve, move and delete stay workspace-only.
       comments: options.role === 'view' ? null : {
         list: (): Promise<CommentT[]> => commentsApi.listShared(options.token),
         create: async (input: CommentInput) => {
-          const profile = (await profilesApi.list()).current_profile
-          if (!profile) throw new Error('Selecione um perfil em Configurações para comentar neste design.')
-          return commentsApi.createShared(options.token, { ...input, author_name: profile.name })
+          if (!authorName) throw new Error('Informe um nome para comentar neste design.')
+          return commentsApi.createShared(options.token, { ...input, author_name: authorName })
         },
-        viewer: async () => {
-          const profile = (await profilesApi.list()).current_profile
-          return profile ? { id: profile.id, owner: false } : null
-        },
+        viewer: async () => null,
       },
     },
   }

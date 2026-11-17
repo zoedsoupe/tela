@@ -17,7 +17,7 @@ Abra [localhost:4000](http://localhost:4000). O `mix setup` instala as dependên
 
 Designs, pastas, versões, comentários, links de compartilhamento, perfis, Brand Kits e registros de mídia ficam no SQLite. Os uploads ficam fora de `priv/static`, no diretório `./uploads` por padrão. Em produção, configure `UPLOADS_DIR` com um caminho absoluto persistente. Inclua o banco SQLite e esse diretório nos backups.
 
-Links de compartilhamento permitem visualizar, comentar ou editar. O espaço de trabalho não tem contas, autenticação ou verificação de propriedade: exponha o servidor somente em uma rede confiável.
+Links de compartilhamento permitem visualizar, comentar ou editar, com expiração de 1, 7 ou 30 dias, ou sem expiração. Novos links expiram em 7 dias por padrão. Links de edição também podem listar, criar e restaurar versões pelo próprio token. Visitantes que comentam informam apenas um nome de exibição, guardado localmente no navegador e por link; nenhum perfil do espaço de trabalho é usado. Resolver, mover e excluir comentários continua restrito ao espaço de trabalho. O espaço de trabalho não tem contas, autenticação ou verificação de propriedade: exponha o servidor somente em uma rede confiável.
 
 ## Recursos do navegador
 

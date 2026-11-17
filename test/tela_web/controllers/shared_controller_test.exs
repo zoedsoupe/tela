@@ -2,6 +2,7 @@ defmodule TelaWeb.SharedControllerTest do
   use TelaWeb.ConnCase, async: false
 
   alias Tela.Designs
+  alias Tela.Profiles
   alias Tela.Sharing
   alias TelaWeb.SharedController
 
@@ -77,6 +78,29 @@ defmodule TelaWeb.SharedControllerTest do
     assert %{"error" => %{"code" => "read_only"}} =
              post(conn, "/api/shared/#{token}/versions", %{label: "Comentário"})
              |> json_response(403)
+  end
+
+  test "guest attribution does not inherit a workspace profile from the session", %{conn: conn} do
+    {:ok, profile} = Profiles.create_profile(%{name: "Perfil do workspace"})
+    {:ok, design} = Designs.create(%{title: "Visitante", preset_id: "story"})
+    {:ok, %{token: comment_token}} = Sharing.create_share_link(design.id, %{role: "comment"})
+    {:ok, %{token: edit_token}} = Sharing.create_share_link(design.id, %{role: "edit"})
+    conn = assign(conn, :current_profile, profile)
+
+    created_comment =
+      SharedController.create_comment(conn, %{
+        "token" => comment_token,
+        "body" => "Nome do link",
+        "author_name" => "Pessoa visitante"
+      })
+
+    assert %{"author_name" => "Pessoa visitante", "profile_id" => nil} =
+             json_response(created_comment, 201)
+
+    created_version =
+      SharedController.create_version(conn, %{"token" => edit_token, "label" => "Versão"})
+
+    assert %{"version" => %{"created_by_id" => nil}} = json_response(created_version, 201)
   end
 
   test "edit token enforces expected revision for saves and restores versions on only its design",

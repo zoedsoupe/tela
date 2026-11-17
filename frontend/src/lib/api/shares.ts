@@ -3,7 +3,14 @@ import type { ShareLinkPatch } from "@/types/adapter"
 import { http } from "./client"
 
 function shareLink(raw: ShareLink): ShareLink {
-  return { ...raw, token: raw.token ?? '', url: raw.url ?? '', is_active: raw.is_active === true }
+  return {
+    ...raw,
+    token: raw.token ?? '',
+    url: raw.url ?? '',
+    is_active: raw.is_active === true,
+    expires_at: raw.expires_at ?? null,
+    revoked_at: raw.revoked_at ?? null,
+  }
 }
 
 export const sharesApi = {

@@ -72,7 +72,7 @@ defmodule TelaWeb.SharedController do
   def create_version(conn, %{"token" => token} = params) do
     label = Map.get(params, "label", "Versão salva")
 
-    case Sharing.create_shared_version(token, label, profile_id(conn)) do
+    case Sharing.create_shared_version(token, label) do
       {:ok, version} ->
         conn
         |> put_status(:created)
@@ -86,7 +86,7 @@ defmodule TelaWeb.SharedController do
   def create_version(conn, _params), do: error(conn, :not_found)
 
   def create_comment(conn, %{"token" => token} = params) do
-    case Sharing.create_shared_comment(token, params, %{profile: conn.assigns[:current_profile]}) do
+    case Sharing.create_shared_comment(token, params) do
       {:ok, comment} ->
         conn |> put_status(:created) |> json_no_store(Sharing.comment_json(comment))
 
@@ -121,9 +121,6 @@ defmodule TelaWeb.SharedController do
   def restore_version(conn, _params), do: error(conn, :not_found)
 
   defp has_key?(map, key), do: Map.has_key?(map, key) or Map.has_key?(map, Atom.to_string(key))
-
-  defp profile_id(%{assigns: %{current_profile: %{id: id}}}), do: id
-  defp profile_id(_conn), do: nil
 
   defp json_no_store(conn, payload) do
     conn

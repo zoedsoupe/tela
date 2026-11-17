@@ -158,7 +158,8 @@ export function createMemoryEditorServices(getDocument: () => DoryDocument, comm
       },
         async create(input) {
           const token = newId().slice(0, 8)
-          const link: ShareLink = { id: newId(), token, role: input.role, url: `/s/${token}`, is_active: true, created_at: now() }
+          const days = { never: 0, '1d': 1, '7d': 7, '30d': 30 }[input.expires_in]
+          const link: ShareLink = { id: newId(), token, role: input.role, url: `/s/${token}`, is_active: true, expires_at: days ? new Date(Date.now() + days * 86_400_000).toISOString() : null, revoked_at: null, created_at: now() }
         links = [link, ...links]
         return link
       },

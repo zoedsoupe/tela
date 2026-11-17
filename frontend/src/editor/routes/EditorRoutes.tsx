@@ -13,6 +13,8 @@ import { migrateDocument } from "../engine/migrations"
 import { createLocalAdapter } from "../dev/localAdapter"
 import { createSharedAdapter } from "../adapters/sharedAdapter"
 import { createWorkspaceAdapter } from "../adapters/workspaceAdapter"
+import { GuestNameDialog } from "./GuestNameDialog"
+import { readGuestName, saveGuestName } from "./sharedIdentity"
 import styles from "./EditorRoutes.module.css"
 
 const DOORY_CREDIT = "Doory by Siam, creator and maintainer of Doory, https://github.com/shaongitbd/doory"
@@ -113,12 +115,21 @@ function SharedEditorRoute() {
   const ref = useRef<EditorHandle>(null)
   const [mount, setMount] = useState(0)
   const [title, setTitle] = useState('')
+  const [guestIdentity, setGuestIdentity] = useState<{ token: string; name: string | null }>(() => ({ token, name: readGuestName(token) }))
+  const guestName = guestIdentity.token === token ? guestIdentity.name : readGuestName(token)
   const query = useQuery({ queryKey: ['shared-design', token], queryFn: ({ signal }) => sharedApi.get(token, signal), enabled: Boolean(token), retry: false })
   usePageTitle(query.data?.title ?? "Design compartilhado")
   const shared = query.data
-  const adapter = useMemo(() => shared ? createSharedAdapter({ token, designId: shared.design_id, role: shared.role, revision: shared.revision, title: shared.title }) : null, [token, shared])
+  const adapter = useMemo(() => shared && (shared.role === 'view' || guestName) ? createSharedAdapter({ token, designId: shared.design_id, role: shared.role, revision: shared.revision, title: shared.title, authorName: guestName ?? undefined }) : null, [token, shared, guestName])
 
-  if (query.isPending || !query.data || !adapter) return <LoadState title="Este link não está disponível" error={query.isError ? "O link pode ter sido revogado ou não é válido." : undefined} retry={query.isError ? () => void query.refetch() : undefined} />
+  if (query.isPending || !query.data) return <LoadState title="Este link não está disponível" error={query.isError ? "O link pode ter sido revogado ou não é válido." : undefined} retry={query.isError ? () => void query.refetch() : undefined} />
+  if (query.data.role !== 'view' && !guestName) {
+    return <GuestNameDialog onSubmit={(value) => {
+      const name = saveGuestName(token, value)
+      if (name) setGuestIdentity({ token, name })
+    }} />
+  }
+  if (!adapter) return <LoadState title="Este link não está disponível" />
 
   const resolveConflict = async (choice: 'reload' | 'save-as-copy'): Promise<void> => {
     if (choice === 'reload') {

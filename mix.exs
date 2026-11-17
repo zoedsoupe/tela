@@ -69,11 +69,23 @@ defmodule Tela.MixProject do
       "ecto.setup": ["ecto.create", "ecto.migrate", "run priv/repo/seeds.exs"],
       "ecto.reset": ["ecto.drop", "ecto.setup"],
       test: ["ecto.create --quiet", "ecto.migrate --quiet", "test"],
-      "assets.setup": ["tailwind.install --if-missing", "esbuild.install --if-missing"],
-      "assets.build": ["compile", "tailwind tela", "esbuild tela"],
+      "assets.setup": [
+        "tailwind.install --if-missing",
+        "esbuild.install --if-missing",
+        "cmd npm ci --prefix assets",
+        "cmd npm ci --prefix frontend"
+      ],
+      "assets.build": [
+        "compile",
+        "tailwind tela",
+        "esbuild tela",
+        "cmd npm --prefix frontend run build"
+      ],
       "assets.deploy": [
         "tailwind tela --minify",
         "esbuild tela --minify",
+        "cmd npm --prefix frontend run build",
+        "cmd cp -R frontend/dist/. priv/static/",
         "phx.digest"
       ],
       precommit: ["compile --warnings-as-errors", "deps.unlock --unused", "format", "test"]

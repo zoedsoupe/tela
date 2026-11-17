@@ -22,7 +22,8 @@ config :tela, TelaWeb.Endpoint,
   secret_key_base: "r/zmqbdvxLk045ldPCNlWIlO0xJ1uF0/MxdWeyDBh/og4WfNO3x+3FksIFxCmCqV",
   watchers: [
     esbuild: {Esbuild, :install_and_run, [:tela, ~w(--sourcemap=inline --watch)]},
-    tailwind: {Tailwind, :install_and_run, [:tela, ~w(--watch)]}
+    tailwind: {Tailwind, :install_and_run, [:tela, ~w(--watch)]},
+    npm: ["--prefix", "frontend", "run", "build", "--", "--watch"]
   ]
 
 # Enable dev routes for dashboard and mailbox

@@ -28,7 +28,6 @@ defmodule TelaWeb do
       # Import common connection and controller functions to use in pipelines
       import Plug.Conn
       import Phoenix.Controller
-      import Phoenix.LiveView.Router
     end
   end
 
@@ -45,22 +44,6 @@ defmodule TelaWeb do
       import Plug.Conn
 
       unquote(verified_routes())
-    end
-  end
-
-  def live_view do
-    quote do
-      use Phoenix.LiveView
-
-      unquote(html_helpers())
-    end
-  end
-
-  def live_component do
-    quote do
-      use Phoenix.LiveComponent
-
-      unquote(html_helpers())
     end
   end
 
@@ -90,7 +73,6 @@ defmodule TelaWeb do
       import TelaWeb.Components.Helpers
 
       # Common modules used in templates
-      alias Phoenix.LiveView.JS
       alias TelaWeb.Layouts
 
       # Routes generation with the ~p sigil

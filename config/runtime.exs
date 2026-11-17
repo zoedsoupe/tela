@@ -19,9 +19,9 @@ if config_env() == :dev do
       patterns: [
         # Static assets, except user uploads
         ~r"priv/static/(?!uploads/).*\.(js|css|png|jpeg|jpg|gif|svg)$"E,
-        # Router, Controllers, LiveViews and LiveComponents
+        # Router, Controllers
         ~r"lib/tela_web/router\.ex$"E,
-        ~r"lib/tela_web/(controllers|live|components)/.*\.(ex|heex)$"E
+        ~r"lib/tela_web/controllers/.*\.(ex|heex)$"E
       ]
     ]
 end

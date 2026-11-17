@@ -2,6 +2,7 @@ defmodule TelaWeb.SharedController do
   use TelaWeb, :controller
 
   alias Tela.Sharing
+  alias TelaWeb.VersionController
 
   def show(conn, %{"token" => token}) do
     case Sharing.shared_document(token) do
@@ -56,6 +57,34 @@ defmodule TelaWeb.SharedController do
 
   def comments(conn, _params), do: error(conn, :not_found)
 
+  def versions(conn, %{"token" => token}) do
+    case Sharing.shared_versions(token) do
+      {:ok, versions} ->
+        json_no_store(conn, %{versions: Enum.map(versions, &VersionController.summary/1)})
+
+      {:error, reason} ->
+        error(conn, reason)
+    end
+  end
+
+  def versions(conn, _params), do: error(conn, :not_found)
+
+  def create_version(conn, %{"token" => token} = params) do
+    label = Map.get(params, "label", "Versão salva")
+
+    case Sharing.create_shared_version(token, label, profile_id(conn)) do
+      {:ok, version} ->
+        conn
+        |> put_status(:created)
+        |> json_no_store(%{version: VersionController.summary(version)})
+
+      {:error, reason} ->
+        error(conn, reason)
+    end
+  end
+
+  def create_version(conn, _params), do: error(conn, :not_found)
+
   def create_comment(conn, %{"token" => token} = params) do
     case Sharing.create_shared_comment(token, params, %{profile: conn.assigns[:current_profile]}) do
       {:ok, comment} ->
@@ -93,6 +122,9 @@ defmodule TelaWeb.SharedController do
 
   defp has_key?(map, key), do: Map.has_key?(map, key) or Map.has_key?(map, Atom.to_string(key))
 
+  defp profile_id(%{assigns: %{current_profile: %{id: id}}}), do: id
+  defp profile_id(_conn), do: nil
+
   defp json_no_store(conn, payload) do
     conn
     |> put_resp_header("cache-control", "no-store")
@@ -126,6 +158,9 @@ defmodule TelaWeb.SharedController do
 
         :read_only ->
           {403, "read_only", "Este link não permite editar o design."}
+
+        :trashed ->
+          {409, "design_trashed", "Restaure o design antes de criar uma versão."}
 
         :comments_disabled ->
           {403, "comments_disabled", "Este link não permite comentários."}

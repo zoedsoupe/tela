@@ -42,7 +42,7 @@ defmodule TelaWeb.VersionController do
     end
   end
 
-  defp summary(version) do
+  def summary(version) do
     %{
       id: version.id,
       design_id: version.design_id,

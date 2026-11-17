@@ -107,7 +107,6 @@ defmodule TelaWeb.Router do
 
   scope "/api", TelaWeb do
     pipe_through :api
-
   end
 
   scope "/api/shared", TelaWeb do
@@ -117,6 +116,8 @@ defmodule TelaWeb.Router do
     patch "/:token", SharedController, :update
     get "/:token/comments", SharedController, :comments
     post "/:token/comments", SharedController, :create_comment
+    get "/:token/versions", SharedController, :versions
+    post "/:token/versions", SharedController, :create_version
     post "/:token/versions/:id/restore", SharedController, :restore_version
   end
 

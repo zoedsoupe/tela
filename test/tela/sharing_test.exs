@@ -3,7 +3,9 @@ defmodule Tela.SharingTest do
 
   import Tela.ProfilesFixtures
   alias Tela.Designs
+  alias Tela.Repo
   alias Tela.Sharing
+  alias Tela.Sharing.ShareLink
 
   setup do
     profile = profile_fixture()
@@ -115,6 +117,71 @@ defmodule Tela.SharingTest do
 
     assert {:error, :invalid_role} =
              Sharing.create_share_link(design.id, %{role: "owner"})
+  end
+
+  test "share links default to seven days, support never, and reject arbitrary expirations", %{
+    design: design
+  } do
+    now = DateTime.utc_now() |> DateTime.truncate(:second)
+
+    assert {:ok, %{link: default_link}} =
+             Sharing.create_share_link(design.id, %{role: "view"})
+
+    assert expiration_in(default_link.expires_at) in 604_799..604_800
+
+    assert {:ok, %{link: one_day_link}} =
+             Sharing.create_share_link(design.id, %{role: "view", expires_in: "1d"})
+
+    assert expiration_in(one_day_link.expires_at) in 86_399..86_400
+
+    assert {:ok, %{link: seven_day_link}} =
+             Sharing.create_share_link(design.id, %{role: "view", expires_in: "7d"})
+
+    assert expiration_in(seven_day_link.expires_at) in 604_799..604_800
+
+    assert {:ok, %{link: thirty_day_link}} =
+             Sharing.create_share_link(design.id, %{role: "view", expires_in: "30d"})
+
+    assert expiration_in(thirty_day_link.expires_at) in 2_591_999..2_592_000
+
+    assert {:ok, %{link: never_link, token: never_token}} =
+             Sharing.create_share_link(design.id, %{role: "view", expires_in: "never"})
+
+    assert is_nil(never_link.expires_at)
+    assert {:ok, _access} = Sharing.access_link(never_token)
+
+    for expires_in <- ["2d", "Never", nil, 1] do
+      assert {:error, :invalid_input} =
+               Sharing.create_share_link(design.id, %{role: "view", expires_in: expires_in})
+    end
+
+    assert {:error, :invalid_input} =
+             Sharing.create_share_link(design.id, %{
+               role: "view",
+               expires_at: DateTime.add(now, 30, :day)
+             })
+  end
+
+  test "expired share links are inaccessible and inactive in their JSON", %{design: design} do
+    assert {:ok, %{link: link, token: token}} =
+             Sharing.create_share_link(design.id, %{role: "edit", expires_in: "1d"})
+
+    assert {:ok, _access} = Sharing.access_link(token)
+
+    expired_at = DateTime.add(DateTime.utc_now() |> DateTime.truncate(:second), -1, :day)
+
+    assert {:ok, expired_link} =
+             link
+             |> ShareLink.changeset(%{expires_at: expired_at})
+             |> Repo.update()
+
+    assert {:error, :not_found} = Sharing.access_link(token)
+    assert Sharing.share_link_json(expired_link).is_active == false
+    assert Sharing.share_link_json(expired_link).expires_at == DateTime.to_iso8601(expired_at)
+  end
+
+  defp expiration_in(expires_at) do
+    DateTime.diff(expires_at, DateTime.utc_now() |> DateTime.truncate(:second), :second)
   end
 
   test "view links expose one design and cannot read comments or edit", %{design: design} do

@@ -28,6 +28,13 @@ defmodule TelaWeb.SharedControllerTest do
 
     assert rejected.status == 403
     assert %{"error" => %{"code" => "read_only"}} = json_response(rejected, 403)
+
+    assert %{"error" => %{"code" => "read_only"}} =
+             get(conn, "/api/shared/#{token}/versions") |> json_response(403)
+
+    assert %{"error" => %{"code" => "read_only"}} =
+             post(conn, "/api/shared/#{token}/versions", %{label: "Visitante"})
+             |> json_response(403)
   end
 
   test "comment token reads and creates comments but is not an edit capability", %{conn: conn} do
@@ -37,6 +44,7 @@ defmodule TelaWeb.SharedControllerTest do
     missing_name = SharedController.create_comment(conn, %{"token" => token, "body" => "Oi"})
     assert missing_name.status == 422
     assert %{"error" => %{"code" => "author_name_required"}} = json_response(missing_name, 422)
+    assert is_nil(Map.get(conn.assigns, :current_profile))
 
     created =
       SharedController.create_comment(conn, %{
@@ -51,6 +59,8 @@ defmodule TelaWeb.SharedControllerTest do
     assert created.status == 201
     comment = json_response(created, 201)
     assert comment["profile_id"] == nil
+    assert comment["author_name"] == "Pessoa"
+    assert comment["author"]["name"] == "Pessoa"
 
     comments = SharedController.comments(conn, %{"token" => token})
     assert [listed] = json_response(comments, 200)
@@ -60,6 +70,13 @@ defmodule TelaWeb.SharedControllerTest do
       SharedController.update(conn, %{"token" => token, "title" => "No", "expected_revision" => 1})
 
     assert denied.status == 403
+
+    assert %{"error" => %{"code" => "read_only"}} =
+             get(conn, "/api/shared/#{token}/versions") |> json_response(403)
+
+    assert %{"error" => %{"code" => "read_only"}} =
+             post(conn, "/api/shared/#{token}/versions", %{label: "Comentário"})
+             |> json_response(403)
   end
 
   test "edit token enforces expected revision for saves and restores versions on only its design",
@@ -69,6 +86,33 @@ defmodule TelaWeb.SharedControllerTest do
     {:ok, version} = Designs.create_version(design.id, "Versão inicial")
     {:ok, %{token: token}} = Sharing.create_share_link(design.id, %{role: "edit"})
     document = put_in(design.document, ["pages", Access.at(0), "background", "color"], "#abcdef")
+
+    created_version =
+      post(conn, "/api/shared/#{token}/versions", %{label: "Versão de visitante"})
+
+    assert %{
+             "version" =>
+               %{
+                 "design_id" => design_id,
+                 "label" => "Versão de visitante",
+                 "is_auto" => false,
+                 "page_count" => page_count,
+                 "thumbnail_url" => nil,
+                 "created_by_id" => nil,
+                 "created_at" => created_at
+               } = created_version_body
+           } = json_response(created_version, 201)
+
+    assert design_id == design.id
+    assert page_count == design.page_count
+    assert is_binary(created_version_body["id"])
+    assert is_binary(created_at)
+
+    assert %{"versions" => listed_versions} =
+             get(conn, "/api/shared/#{token}/versions") |> json_response(200)
+
+    assert Enum.any?(listed_versions, &(&1["id"] == created_version_body["id"]))
+    assert Enum.any?(listed_versions, &(&1["id"] == version.id))
 
     saved =
       SharedController.update(conn, %{

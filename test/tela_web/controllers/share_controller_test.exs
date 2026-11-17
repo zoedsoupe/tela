@@ -15,13 +15,19 @@ defmodule TelaWeb.ShareControllerTest do
     assert body["url"] == "/s/#{body["token"]}"
 
     list = json_response(ShareController.index(conn, %{"design_id" => design.id}), 200)
-    assert [%{"id" => id, "token" => listed_token, "is_active" => true}] = list
+    assert [%{"id" => id, "is_active" => true, "expires_at" => expires_at} = listed] = list
     assert id == body["id"]
-    assert listed_token == body["token"]
+    assert is_binary(expires_at)
+    refute Map.has_key?(listed, "token")
 
     updated = ShareController.update(conn, %{"id" => body["id"], "role" => "edit"})
     assert json_response(updated, 200)["role"] == "edit"
     assert ShareController.delete(conn, %{"id" => body["id"]}).status == 204
+
+    assert [%{"is_active" => false} = revoked] =
+             json_response(ShareController.index(conn, %{"design_id" => design.id}), 200)
+
+    refute Map.has_key?(revoked, "token")
 
     unavailable = SharedController.show(conn, %{"token" => body["token"]})
     assert unavailable.status == 404
@@ -38,5 +44,19 @@ defmodule TelaWeb.ShareControllerTest do
              json_response(response, 422)
 
     assert is_binary(message)
+  end
+
+  test "rejects unsupported expiration values", %{conn: conn} do
+    {:ok, design} = Designs.create(%{title: "Expiração", preset_id: "story"})
+
+    response =
+      ShareController.create(conn, %{
+        "design_id" => design.id,
+        "role" => "view",
+        "expires_in" => "90d"
+      })
+
+    assert response.status == 422
+    assert %{"error" => %{"code" => "invalid_input"}} = json_response(response, 422)
   end
 end

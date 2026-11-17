@@ -103,10 +103,11 @@ defmodule Tela.Sharing do
   def create_share_link(design_id, attrs) when is_map(attrs) do
     with {:ok, design} <- workspace_design(design_id),
          {:ok, role} <- valid_role(value(attrs, :role)),
+         {:ok, expires_at} <- share_link_expiration(attrs),
          token <- generate_token(),
          changeset <-
            %ShareLink{design_id: design.id, token: token, token_digest: token_digest(token)}
-           |> ShareLink.changeset(%{role: role}),
+           |> ShareLink.changeset(%{role: role, expires_at: expires_at}),
          {:ok, link} <- Repo.insert(changeset) do
       {:ok, %{link: link, token: token}}
     end
@@ -149,11 +150,14 @@ defmodule Tela.Sharing do
 
   @spec access_link(binary()) :: result(%{link: ShareLink.t(), design: Design.t()})
   def access_link(token) do
+    now = now()
+
     with {:ok, digest} <- digest_token(token),
-         %ShareLink{revoked_at: nil} = link <- Repo.get_by(ShareLink, token_digest: digest),
+         %ShareLink{} = link <- Repo.get_by(ShareLink, token_digest: digest),
+         true <- active_link?(link, now),
          {:ok, design} <- workspace_design(link.design_id),
-         true <- touch_link(link.id) do
-      {:ok, %{link: %{link | last_accessed_at: now()}, design: design}}
+         true <- touch_link(link.id, now) do
+      {:ok, %{link: %{link | last_accessed_at: now}, design: design}}
     else
       _ -> {:error, :not_found}
     end
@@ -248,6 +252,24 @@ defmodule Tela.Sharing do
 
   def restore_shared_version(_token, _version_id, _attrs), do: {:error, :invalid_input}
 
+  @spec shared_versions(binary()) :: result([Tela.Designs.DesignVersion.t()])
+  def shared_versions(token) do
+    with {:ok, %{link: link}} <- access_link(token),
+         :ok <- require_edit_role(link),
+         {:ok, versions} <- Designs.list_versions(link.design_id) do
+      {:ok, versions}
+    end
+  end
+
+  @spec create_shared_version(binary(), term(), binary() | nil) ::
+          result(Tela.Designs.DesignVersion.t())
+  def create_shared_version(token, label, created_by_id \\ nil) do
+    with {:ok, %{link: link}} <- access_link(token),
+         :ok <- require_edit_role(link) do
+      Designs.create_version(link.design_id, label, created_by_id)
+    end
+  end
+
   @spec comment_json(Comment.t()) :: map()
   def comment_json(%Comment{} = comment) do
     %{
@@ -269,21 +291,20 @@ defmodule Tela.Sharing do
 
   @spec share_link_json(ShareLink.t(), String.t() | nil) :: map()
   def share_link_json(%ShareLink{} = link, token \\ nil) do
-    token = token || link.token
-
-    %{
+    payload = %{
       id: link.id,
-      token: token,
       role: link.role,
       url: if(token, do: "/s/#{token}", else: nil),
-      is_active: is_nil(link.revoked_at),
+      is_active: active_link?(link, now()),
       revoked_at: iso8601(link.revoked_at),
       last_accessed_at: iso8601(link.last_accessed_at),
-      expires_at: nil,
+      expires_at: iso8601(link.expires_at),
       has_password: false,
       created_at: iso8601(link.inserted_at),
       updated_at: iso8601(link.updated_at)
     }
+
+    if is_binary(token), do: Map.put(payload, :token, token), else: payload
   end
 
   defp workspace_design(design_id) do
@@ -438,6 +459,31 @@ defmodule Tela.Sharing do
   defp valid_role(role) when role in ["view", "comment", "edit"], do: {:ok, role}
   defp valid_role(_role), do: {:error, :invalid_role}
 
+  defp share_link_expiration(attrs) do
+    cond do
+      has_key?(attrs, :expires_at) ->
+        {:error, :invalid_input}
+
+      not has_key?(attrs, :expires_in) ->
+        {:ok, DateTime.add(now(), 7, :day)}
+
+      value(attrs, :expires_in) == "never" ->
+        {:ok, nil}
+
+      value(attrs, :expires_in) == "1d" ->
+        {:ok, DateTime.add(now(), 1, :day)}
+
+      value(attrs, :expires_in) == "7d" ->
+        {:ok, DateTime.add(now(), 7, :day)}
+
+      value(attrs, :expires_in) == "30d" ->
+        {:ok, DateTime.add(now(), 30, :day)}
+
+      true ->
+        {:error, :invalid_input}
+    end
+  end
+
   defp generate_token, do: :crypto.strong_rand_bytes(24) |> Base.url_encode64(padding: false)
 
   defp digest_token(token) when is_binary(token) do
@@ -451,15 +497,25 @@ defmodule Tela.Sharing do
 
   defp token_digest(token), do: :crypto.hash(:sha256, token) |> Base.encode16(case: :lower)
 
-  defp touch_link(id) do
-    now = now()
-
-    case from(link in ShareLink, where: link.id == ^id and is_nil(link.revoked_at))
+  defp touch_link(id, now) do
+    case from(link in ShareLink,
+           where:
+             link.id == ^id and is_nil(link.revoked_at) and
+               (is_nil(link.expires_at) or link.expires_at > ^now)
+         )
          |> Repo.update_all(set: [last_accessed_at: now]) do
       {1, _} -> true
       _ -> false
     end
   end
+
+  defp active_link?(%ShareLink{revoked_at: nil, expires_at: nil}, _now), do: true
+
+  defp active_link?(%ShareLink{revoked_at: nil, expires_at: expires_at}, now)
+       when not is_nil(expires_at),
+       do: DateTime.compare(expires_at, now) == :gt
+
+  defp active_link?(_link, _now), do: false
 
   defp valid_title(title) when is_binary(title) do
     title = String.trim(title)

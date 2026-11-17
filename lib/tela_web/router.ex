@@ -39,8 +39,6 @@ defmodule TelaWeb.Router do
     get "/harness", SPAController, :index
     get "/presenter-view.html", SPAController, :presenter
     get "/", SPAController, :index
-    live "/brand-kits", BrandKitsLive, :index
-    live "/designs/:id", EditorLive, :show
     post "/profiles", ProfileController, :create
   end
 
@@ -107,6 +105,11 @@ defmodule TelaWeb.Router do
     delete "/share_links/:id", ShareController, :delete
   end
 
+  scope "/api", TelaWeb do
+    pipe_through :api
+
+  end
+
   scope "/api/shared", TelaWeb do
     pipe_through :shared_api
 
@@ -121,14 +124,6 @@ defmodule TelaWeb.Router do
     pipe_through :api
 
     match :*, "/*path", SPAController, :api_not_found
-  end
-
-  if Application.compile_env(:tela, :dev_routes, false) do
-    scope "/dev", TelaWeb do
-      pipe_through :browser
-
-      live "/styleguide", StyleguideLive, :index
-    end
   end
 
   scope "/", TelaWeb do

@@ -26,9 +26,6 @@ config :tela, TelaWeb.Endpoint,
     npm: ["--prefix", "frontend", "run", "build", "--", "--watch"]
   ]
 
-# Enable dev routes for dashboard and mailbox
-config :tela, dev_routes: true
-
 # Do not include metadata nor timestamps in development logs
 config :logger, :default_formatter, format: "[$level] $message\n"
 

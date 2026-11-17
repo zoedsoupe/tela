@@ -2,7 +2,7 @@
  * Doory design tokens — the lilac theme: a soft lavender page, ink-brown lines and pastel accents taken from the
  * Doory bunny.
  * Components must use these variables and never hard-code colours.
- * There is one light theme, with a high-contrast variant (the `data-contrast='more'` block at the end).
+ * Light is the default; dark is selected on <html> with data-theme="dark".
  */
 :root {
   /* Brand — violet scale */
@@ -57,6 +57,11 @@
   --color-text-muted: #6f6170;
   --color-text-subtle: #73667a;
   --color-overlay: rgb(43 28 23 / 0.5);
+  --color-home-hero-start: #efeaff;
+  --color-home-hero-middle: #f6f0ff;
+  --color-home-hero-end: #fdeef3;
+  --color-home-hero-sizes-bg: rgb(255 255 255 / 0.55);
+  --color-home-hero-sizes-border: var(--color-border-strong);
   /* The slideshow stage is black and its text white in every theme: it is a projected screen, not chrome. */
   --color-stage: #000000;
   --color-on-stage: #ffffff;
@@ -137,8 +142,70 @@
 }
 
 /*
- * High contrast: the same light theme with darker text, lines and focus rings. Set on <html> by src/lib/contrast.ts.
- * Colours only, and never the page, workspace or stage backgrounds, so presenting and exports look the same.
+ * Dark chrome: neutral charcoal with a lilac undertone. Artwork, the projected stage and transparency checkerboards
+ * intentionally inherit the light/base artwork tokens and do not change with the UI theme.
+ */
+:root[data-theme='dark'] {
+  --violet-100: #30283b;
+  --violet-800: #d7c6ff;
+
+  --ink: #f3eef7;
+  --paper: #211d25;
+
+  --color-brand: #c7b5f5;
+  --color-brand-hover: #d2c3fa;
+  --color-brand-active: #b69de9;
+  --color-brand-soft: #30283b;
+  --color-brand-soft-hover: #3a3048;
+  --color-on-brand: #211d25;
+
+  --color-cta: #c7b5f5;
+  --color-cta-hover: #d2c3fa;
+  --color-on-cta: #211d25;
+  --color-cta-shadow: #665487;
+
+  --color-bg: #17151a;
+  --color-bg-subtle: #1e1b22;
+  --color-bg-muted: #2a2630;
+  --color-surface: #211e26;
+  --color-surface-raised: #29252f;
+  --color-canvas-workspace: #25212b;
+  --color-border: #39333f;
+  --color-border-strong: #514958;
+  --color-text: #f3eef7;
+  --color-text-muted: #c3bbc9;
+  --color-text-subtle: #b3a9ba;
+  --color-overlay: rgb(7 5 10 / 0.72);
+  --color-home-hero-start: #28232e;
+  --color-home-hero-middle: #2d2734;
+  --color-home-hero-end: #30252d;
+  --color-home-hero-sizes-bg: #3a3048;
+  --color-home-hero-sizes-border: #8b7f94;
+
+  --color-success: #72d891;
+  --color-success-soft: #20372a;
+  --color-warning: #f5c36e;
+  --color-warning-soft: #3b2d1b;
+  --color-danger: #ff9296;
+  --color-danger-soft: #402226;
+  --color-info: #94bdff;
+  --color-info-soft: #202f47;
+
+  --focus-ring: 0 0 0 3px #b99eea;
+  --selection-color: #b99eea;
+  --guide-color: #ff76a9;
+
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.28), 0 1px 1px rgb(0 0 0 / 0.2);
+  --shadow-md: 0 4px 12px rgb(0 0 0 / 0.32), 0 2px 4px rgb(0 0 0 / 0.22);
+  --shadow-lg: 0 18px 40px rgb(0 0 0 / 0.42), 0 4px 10px rgb(0 0 0 / 0.28);
+  --shadow-card: 0 0 0 1px rgb(255 255 255 / 0.04), 0 2px 0 rgb(0 0 0 / 0.24), 0 28px 50px -18px rgb(0 0 0 / 0.62);
+
+  color-scheme: dark;
+}
+
+/*
+ * High contrast: strengthen text, lines, state colours and focus rings without changing page, workspace, stage or
+ * checkerboard backgrounds. Set on <html> by src/lib/contrast.ts.
  */
 :root[data-contrast='more'] {
   --color-text-muted: #3f3340; /* at least 9:1 on every surface, the workspace and the lilac washes */
@@ -156,6 +223,28 @@
   /* One shadow, so the `inset var(--focus-ring)` rings keep working. */
   --focus-ring: 0 0 0 3px var(--violet-800);
   --shadow-artboard: 0 0 0 1px var(--color-border-strong), 0 2px 6px rgb(60 40 110 / 0.12);
+}
+
+/* Light text and clear boundaries are required when high contrast is combined with the dark palette. */
+:root[data-theme='dark'][data-contrast='more'] {
+  --color-text-muted: #e7dfee;
+  --color-text-subtle: #d7cde0;
+  --color-border: #ad9fba;
+  --color-border-strong: #c2b5ce;
+  --color-brand: #d3c2ff;
+  --color-brand-hover: #dfd1ff;
+  --color-brand-active: #c4aff4;
+  --color-brand-soft: #30283b;
+  --color-brand-soft-hover: #3a3048;
+  --accent-lilac: #ddceff;
+  --selection-color: #d3c2ff;
+  --guide-color: #ff8bb7;
+  --color-success: #8be0a7;
+  --color-warning: #ffce78;
+  --color-danger: #ff9c9c;
+  --color-info: #9fc5ff;
+  --focus-ring: 0 0 0 3px #ddceff;
+  --shadow-artboard: 0 0 0 1px var(--color-border-strong), 0 2px 6px rgb(0 0 0 / 0.32);
 }
 
 @media (prefers-reduced-motion: reduce) {

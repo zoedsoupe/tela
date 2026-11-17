@@ -7,7 +7,12 @@
   padding: var(--space-6) var(--space-6) var(--space-6);
   padding-right: 11rem;
   border-radius: var(--radius-xl);
-  background: linear-gradient(120deg, #efeaff 0%, #f6f0ff 55%, #fdeef3 100%);
+  background: linear-gradient(
+    120deg,
+    var(--color-home-hero-start) 0%,
+    var(--color-home-hero-middle) 55%,
+    var(--color-home-hero-end) 100%
+  );
   overflow: hidden;
 }
 
@@ -87,8 +92,8 @@
   color: var(--color-brand-strong);
   font: inherit;
   cursor: pointer;
-  background: rgb(255 255 255 / 0.55);
-  border: 1.5px dashed var(--color-border-strong);
+  background: var(--color-home-hero-sizes-bg);
+  border: 1.5px dashed var(--color-home-hero-sizes-border);
 }
 
 .chip:hover {

@@ -143,6 +143,10 @@ samp {
   color: var(--ink);
 }
 
+:root[data-theme='dark'] ::selection {
+  color: #211d25;
+}
+
 
 * {
   scrollbar-width: thin;
@@ -192,3 +196,9 @@ samp {
   --color-brand-strong: var(--ink);
 }
 
+:root[data-theme='dark'] {
+  --color-brand-fill: var(--color-brand);
+  --color-brand-fill-hover: var(--color-brand-hover);
+  --color-brand-fill-active: var(--color-brand-active);
+  --color-brand-strong: var(--color-text);
+}

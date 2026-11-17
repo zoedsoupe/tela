@@ -5,7 +5,7 @@ defmodule TelaWeb.DashboardLiveTest do
   alias Tela.Designs
 
   test "shows workspace formats and an empty project state", %{conn: conn} do
-    {:ok, view, _html} = live(conn, ~p"/")
+    {:ok, view, _html} = live_isolated(conn, TelaWeb.DashboardLive)
     assert has_element?(view, "#workspace-designs")
     assert has_element?(view, "#preset-post-instagram")
     assert has_element?(view, "#preset-apresentacao-16-9")
@@ -23,13 +23,13 @@ defmodule TelaWeb.DashboardLiveTest do
         preset_id: "story"
       })
 
-    {:ok, view, _html} = live(conn, ~p"/")
+    {:ok, view, _html} = live_isolated(conn, TelaWeb.DashboardLive)
     assert has_element?(view, "#design-#{design.id}")
     assert has_element?(view, "#design-#{design.id} [data-design-format='story']")
   end
 
   test "creates a design from a preset and navigates to the editor", %{conn: conn} do
-    {:ok, view, _html} = live(conn, ~p"/")
+    {:ok, view, _html} = live_isolated(conn, TelaWeb.DashboardLive)
     render_click(view, "create_design", %{"preset_id" => "post-instagram"})
     assert {:ok, [design]} = Designs.list()
     assert design.title == "Sem título"
@@ -42,7 +42,7 @@ defmodule TelaWeb.DashboardLiveTest do
     {:ok, design} =
       Designs.create(%{created_by_id: profile.id, title: "Original", preset_id: "story"})
 
-    {:ok, view, _html} = live(conn, ~p"/")
+    {:ok, view, _html} = live_isolated(conn, TelaWeb.DashboardLive)
 
     render_click(view, "duplicate_design", %{"id" => design.id})
     assert {:ok, designs} = Designs.list()
@@ -64,7 +64,9 @@ defmodule TelaWeb.DashboardLiveTest do
     assert {:ok, profile} = Tela.Profiles.get_profile(profile_id)
     assert profile.name == "Zoey"
 
-    {:ok, view, _html} = live(recycle(conn), ~p"/")
+    {:ok, view, _html} =
+      live_isolated(recycle(conn), TelaWeb.DashboardLive, session: %{"profile_id" => profile_id})
+
     assert has_element?(view, "#current-profile[data-profile-id='#{profile.id}']")
   end
 end

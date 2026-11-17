@@ -1,0 +1,7 @@
+.loading,
+.create {
+  display: grid;
+  min-height: 70dvh;
+  place-items: center;
+  padding: var(--space-6);
+}

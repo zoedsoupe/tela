@@ -27,10 +27,10 @@ describe('Resize dialog size fields', () => {
   it('show the limit as their tooltip, in the unit of the field', async () => {
     const ctx = setup()
     engine = ctx.engine
-    expect(ctx.width).toHaveAttribute('title', 'Between 1 and 20000 px')
-    expect(ctx.height).toHaveAttribute('title', 'Between 1 and 20000 px')
+    expect(ctx.width).toHaveAttribute('title', t.limits.range(1, 20_000, 'px'))
+    expect(ctx.height).toHaveAttribute('title', t.limits.range(1, 20_000, 'px'))
     await userEvent.click(screen.getByRole('radio', { name: 'mm' }))
-    expect(screen.getByRole('textbox', { name: t.dialog.resizeWidth })).toHaveAttribute('title', 'Between 0.3 and 5291.6 mm')
+    expect(screen.getByRole('textbox', { name: t.dialog.resizeWidth })).toHaveAttribute('title', t.limits.range(0.3, 5291.6, 'mm'))
   })
 
   it.each([
@@ -86,7 +86,7 @@ describe('Resize dialog on a design with several pages', () => {
     engine = ctx.engine
     expect(screen.getByRole('radio', { name: t.dialog.resizeThisPage })).toBeChecked()
     expect(screen.getByRole('textbox', { name: t.dialog.resizeWidth })).toHaveValue('300')
-    expect(screen.getByText(/Current size: 300 × 400 px/)).toBeInTheDocument()
+    expect(screen.getByText(new RegExp(`${t.dialog.resizeCurrent}: 300 × 400 px`))).toBeInTheDocument()
     await userEvent.clear(screen.getByRole('textbox', { name: t.dialog.resizeWidth }))
     await userEvent.type(screen.getByRole('textbox', { name: t.dialog.resizeWidth }), '320{Enter}')
     await userEvent.click(screen.getByRole('button', { name: t.dialog.resizeTitle }))

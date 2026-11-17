@@ -2,8 +2,7 @@
 import { ArrowLeft, Sparkles } from 'lucide-react'
 import { useNavigate, useParams, Link } from 'react-router-dom'
 import { TemplateCard } from "@/features/templates/TemplateCard"
-import { localRepository } from "@/lib/local"
-import { isApiError } from "@/lib/api"
+import { isApiError, templatesApi } from "@/lib/api"
 import { useTemplate, useTemplatesList } from "@/lib/api/hooks"
 import { usePageMeta } from "@/lib/usePageMeta"
 import { useState } from 'react'
@@ -20,7 +19,7 @@ export default function TemplateDetailPage() {
   usePageMeta({
     title: template?.title ?? "Modelo",
     description: template ? (template.description || `Um modelo ${template.width} × ${template.height} px ${template.title} gratuito e editável. Abra-o no seu navegador e personalize-o.`) : undefined,
-    canonical: template ? `/modelos/${template.slug}` : undefined,
+    canonical: template ? `/templates/${template.slug}` : undefined,
     image: template?.thumbnail_url || undefined,
   })
 
@@ -53,7 +52,7 @@ export default function TemplateDetailPage() {
         action={
           <>
             {notFound ? null : <Button onClick={() => void query.refetch()}>{"Tente novamente"}</Button>}
-            <LinkButton to="/modelos" variant="secondary">
+            <LinkButton to="/templates" variant="secondary">
               {"Procure modelos"}</LinkButton>
           </>
         }
@@ -67,8 +66,8 @@ export default function TemplateDetailPage() {
     if (!template || creating) return
     setCreating(true)
     try {
-      const design = await localRepository.createDesign({ title: template.title, document: template.document })
-      navigate(`/?design=${encodeURIComponent(design.id)}`)
+      const design = await templatesApi.use(template.slug)
+      navigate(`/design/${encodeURIComponent(design.id)}`)
     } catch (error) {
       toast({ title: "Não foi possível usar este modelo", description: isApiError(error) ? error.message : "Tente novamente.", variant: 'error' })
     } finally {
@@ -78,7 +77,7 @@ export default function TemplateDetailPage() {
 
   return (
     <div className={styles.page}>
-      <Link to="/modelos" className={styles.back}>
+      <Link to="/templates" className={styles.back}>
         <ArrowLeft size={16} aria-hidden="true" /> {"Todos os modelos"}</Link>
       <div className={styles.layout}>
         <div className={styles.preview}>
@@ -88,14 +87,14 @@ export default function TemplateDetailPage() {
           {template.category ? <Badge tone="brand">{template.category.name}</Badge> : null}
           <h1 className={styles.title}>{template.title}</h1>
           <p className={styles.facts}>
-            {template.width} × {template.height} {"pixels · "}{template.page_count} {template.page_count === 1 ? 'page' : 'pages'}
+            {template.width} × {template.height} {"px · "}{template.page_count} {template.page_count === 1 ? 'página' : 'páginas'}
           </p>
           {template.description ? <p className={styles.description}>{template.description}</p> : null}
           {template.tags.length > 0 ? (
             <ul className={styles.tags} aria-label={"Etiquetas"}>
               {template.tags.map((tag) => (
                 <li key={tag}>
-                  <Link to={`/modelos?q=${encodeURIComponent(tag)}`} className={styles.tag}>
+                  <Link to={`/templates?q=${encodeURIComponent(tag)}`} className={styles.tag}>
                     {tag}
                   </Link>
                 </li>
@@ -105,7 +104,7 @@ export default function TemplateDetailPage() {
           <div className={styles.actions}>
             <Button size="lg" leftIcon={<Sparkles size={18} />} loading={creating} onClick={() => void startFromTemplate()}>
               {"Use este modelo"}</Button>
-            <p className={styles.hint}>Uma cópia local será aberta no editor.</p>
+            <p className={styles.hint}>Uma cópia será salva na biblioteca compartilhada.</p>
           </div>
         </div>
       </div>

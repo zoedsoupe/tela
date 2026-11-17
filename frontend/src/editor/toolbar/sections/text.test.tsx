@@ -7,6 +7,7 @@ import { createMemoryAdapter } from '../../dev/memoryAdapter'
 import { EditorProvider } from '../../EditorProvider'
 import { EditorEngine } from '../../engine/editor'
 import { EMPTY_SELECTION } from '../../store/editorStore'
+import { t } from '../../strings'
 import { TextSection } from './text'
 
 const family: FontFamily = {
@@ -35,7 +36,7 @@ function mount(weight: number, italic = false, fontFamily = family.family, found
 describe('font weight menu', () => {
   it('offers the selected font’s installed normal weights and applies a choice', async () => {
     const { engine, text } = mount(300)
-    await waitFor(() => expect(screen.getByTestId('ed-font-weight')).toHaveTextContent('Light'))
+    await waitFor(() => expect(screen.getByTestId('ed-font-weight')).toHaveTextContent(t.toolbar.weightNames[300]))
     fireEvent.click(screen.getByTestId('ed-font-weight'))
     expect(screen.getByTestId('ed-weight-300')).toHaveAttribute('aria-checked', 'true')
     expect(screen.getByTestId('ed-weight-600')).toBeEnabled()
@@ -73,7 +74,7 @@ describe('font weight menu', () => {
     await waitFor(() => expect(screen.getAllByRole('option').filter((row) => row.hasAttribute('data-font'))).toHaveLength(1))
     await userEvent.click(screen.getByRole('option', { name: 'Georgia' }))
     await waitFor(() => expect(text).toHaveBeenCalledWith({ fontFamily: '"Georgia", serif', fontWeight: 700 }, 'Change font'))
-    expect(engine.state.toasts.at(-1)?.message).toBe("Semi Bold isn't available for Georgia. Changed to Bold.")
+    expect(engine.state.toasts.at(-1)?.message).toBe(t.toolbar.fontWeightAdjusted('Georgia', t.toolbar.weightNames[600], t.toolbar.weightNames[700]))
     engine.dispose()
   })
 
@@ -85,7 +86,7 @@ describe('font weight menu', () => {
     fireEvent.click(screen.getByTestId('ed-font'))
     await userEvent.click(await screen.findByRole('option', { name: 'Inter' }))
     expect(text).toHaveBeenCalledWith({ fontFamily: '"Inter", sans-serif', fontWeight: 700 }, 'Change font')
-    expect(engine.state.toasts.at(-1)?.message).toBe("Extra Bold isn't available for Inter. Changed to Bold.")
+    expect(engine.state.toasts.at(-1)?.message).toBe(t.toolbar.fontWeightAdjusted('Inter', t.toolbar.weightNames[800], t.toolbar.weightNames[700]))
     engine.dispose()
   })
 

@@ -5,6 +5,7 @@ import { createBlankDocument } from '@/lib/document'
 import { createMemoryAdapter } from '../dev/memoryAdapter'
 import { EditorProvider } from '../EditorProvider'
 import { EditorEngine } from '../engine/editor'
+import { t } from '../strings'
 import { PageSizeChip } from './PageSizeChip'
 
 function setup(mode: 'local' | 'shared-view' = 'local') {
@@ -31,7 +32,7 @@ describe('PageSizeChip', () => {
     const chips = screen.getAllByTestId('ed-page-size')
     expect(chips[0]).toHaveTextContent('336 × 192 px')
     expect(chips[1]).toHaveTextContent('1080 × 1920 px')
-    expect(chips[0]).toHaveAccessibleName('Page 2 is 336 × 192 px. Change its size')
+    expect(chips[0]).toHaveAccessibleName(t.workspace.sizeChipLabel(2, '336 × 192 px'))
   })
 
   it('follows the page when its size changes', async () => {

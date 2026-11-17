@@ -29,15 +29,15 @@ describe('canvas size fields (the document format’s 1-20 000 px)', () => {
     const ctx = await setup()
     engine = ctx.engine
     for (const field of [ctx.width, ctx.height]) {
-      expect(field).toHaveAttribute('title', 'Between 1 and 20000 px')
+      expect(field).toHaveAttribute('title', t.limits.range(1, 20_000, 'px'))
       expect(field).toHaveAttribute('min', '1')
       expect(field).toHaveAttribute('max', '20000')
       expect(field).toHaveAccessibleDescription(t.canvasSize.range(1, 20000))
     }
     await userEvent.click(screen.getByRole('button', { name: 'mm' }))
-    expect(screen.getByTestId('ed-canvas-width')).toHaveAttribute('title', 'Between 0.3 and 5291.6 mm')
+    expect(screen.getByTestId('ed-canvas-width')).toHaveAttribute('title', t.limits.range(0.3, 5291.6, 'mm'))
     await userEvent.click(screen.getByRole('button', { name: 'in' }))
-    expect(screen.getByTestId('ed-canvas-height')).toHaveAttribute('title', 'Between 0.02 and 208.33 in')
+    expect(screen.getByTestId('ed-canvas-height')).toHaveAttribute('title', t.limits.range(0.02, 208.33, 'in'))
   })
 
   it.each([

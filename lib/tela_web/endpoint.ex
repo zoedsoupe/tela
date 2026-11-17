@@ -32,7 +32,8 @@ defmodule TelaWeb.Endpoint do
       at: "/",
       from: "frontend/dist",
       gzip: false,
-      only: ~w(assets icons index.html presenter-view.html manifest.webmanifest robots.txt og-image.png)
+      only:
+        ~w(assets icons index.html presenter-view.html manifest.webmanifest robots.txt og-image.png)
 
     plug Tidewave
   end

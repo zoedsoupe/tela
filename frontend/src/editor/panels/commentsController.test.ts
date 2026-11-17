@@ -41,15 +41,13 @@ function fake(initial: CommentT[] = []): Fake {
 
 const ready = async (rows: CommentT[] = [made('a', { created_at: '2026-01-01T00:00:00Z' }), made('b', { created_at: '2026-01-02T00:00:00Z' })]) => {
   const f = fake(rows)
-  const controller = new CommentsController({ pollMs: 1000, isVisible: () => visible })
+  const controller = new CommentsController()
   controller.bind(f.service)
   await controller.refresh()
   return { f, controller }
 }
 
-let visible = true
 beforeEach(() => {
-  visible = true
   vi.useFakeTimers()
 })
 afterEach(() => {
@@ -143,26 +141,22 @@ describe('loading', () => {
   })
 })
 
-describe('polling', () => {
-  it('fetches at once, then every interval, only while watched', async () => {
+describe('explicit refresh', () => {
+  it('loads when watched and does not poll while the panel remains open', async () => {
     const f = fake([made('a')])
-    const c = new CommentsController({ pollMs: 1000, isVisible: () => visible })
+    const c = new CommentsController()
     c.bind(f.service)
     const stop = c.watch()
     await tick(0)
     expect(f.list).toHaveBeenCalledTimes(1)
-    await tick(1000)
-    expect(f.list).toHaveBeenCalledTimes(2)
-    await tick(1000)
-    expect(f.list).toHaveBeenCalledTimes(3)
+    await tick(15_000)
+    expect(f.list).toHaveBeenCalledTimes(1)
     stop()
-    await tick(5000)
-    expect(f.list).toHaveBeenCalledTimes(3)
   })
 
-  it('does not fetch twice for two watchers and stops when the last one leaves', async () => {
+  it('does not duplicate the initial fetch across watchers or refetch a ready snapshot on reopen', async () => {
     const f = fake([made('a')])
-    const c = new CommentsController({ pollMs: 1000, isVisible: () => visible })
+    const c = new CommentsController()
     c.bind(f.service)
     const one = c.watch()
     const two = c.watch()
@@ -170,55 +164,54 @@ describe('polling', () => {
     expect(f.list).toHaveBeenCalledTimes(1)
     one()
     one()
-    await tick(1000)
-    expect(f.list).toHaveBeenCalledTimes(2)
     two()
-    await tick(3000)
-    expect(f.list).toHaveBeenCalledTimes(2)
-  })
-
-  it('skips polls while the tab is hidden and catches up when it shows again', async () => {
-    const f = fake([made('a')])
-    const c = new CommentsController({ pollMs: 1000, isVisible: () => visible })
-    c.bind(f.service)
-    c.watch()
+    const reopened = c.watch()
     await tick(0)
-    visible = false
-    await tick(3000)
     expect(f.list).toHaveBeenCalledTimes(1)
-    visible = true
-    document.dispatchEvent(new Event('visibilitychange'))
+    reopened()
+  })
+
+  it('retries a failed load only after an explicit refresh', async () => {
+    const f = fake([made('a')])
+    const c = new CommentsController()
+    c.bind(f.service)
+    f.list.mockRejectedValueOnce(new Error('down'))
+    const stop = c.watch()
+    await tick(0)
+    expect(c.getSnapshot().status).toBe('error')
+    expect(f.list).toHaveBeenCalledTimes(1)
+    await tick(5000)
+    expect(f.list).toHaveBeenCalledTimes(1)
+    await c.refresh()
+    stop()
+    expect(f.list).toHaveBeenCalledTimes(2)
+  })
+
+  it('retries a failed load when the comments panel is reopened', async () => {
+    const f = fake([made('a')])
+    const c = new CommentsController()
+    c.bind(f.service)
+    f.list.mockRejectedValueOnce(new Error('down'))
+    const first = c.watch()
+    await tick(0)
+    expect(c.getSnapshot().status).toBe('error')
+    first()
+    const reopened = c.watch()
     await tick(0)
     expect(f.list).toHaveBeenCalledTimes(2)
+    expect(c.getSnapshot().status).toBe('ready')
+    reopened()
   })
 
-  it('backs off after failures and goes back to the normal pace after a success', async () => {
+  it('picks up changes after a manual refresh', async () => {
     const f = fake([made('a')])
-    const c = new CommentsController({ pollMs: 1000, isVisible: () => visible })
+    const c = new CommentsController()
     c.bind(f.service)
-    f.list.mockRejectedValue(new Error('down'))
-    c.watch()
-    await tick(0) // first attempt fails
-    expect(f.list).toHaveBeenCalledTimes(1)
-    await tick(1999) // next attempt after 2 s
-    expect(f.list).toHaveBeenCalledTimes(1)
-    await tick(1)
-    expect(f.list).toHaveBeenCalledTimes(2)
-    f.list.mockResolvedValue([made('a')])
-    await tick(4000) // third attempt after 4 s succeeds
-    expect(f.list).toHaveBeenCalledTimes(3)
-    await tick(1000) // back to 1 s
-    expect(f.list).toHaveBeenCalledTimes(4)
-  })
-
-  it('picks up changes other people made', async () => {
-    const f = fake([made('a')])
-    const c = new CommentsController({ pollMs: 1000, isVisible: () => visible })
-    c.bind(f.service)
-    c.watch()
+    const stop = c.watch()
     await tick(0)
     f.list.mockResolvedValue([made('a'), made('b', { created_at: '2026-01-03T00:00:00Z' })])
-    await tick(1000)
+    await c.refresh()
+    stop()
     expect(c.getSnapshot().comments.map((x) => x.id)).toEqual(['a', 'b'])
   })
 })
@@ -344,7 +337,6 @@ describe('a refresh that races with our own changes', () => {
     f.list.mockResolvedValue([made('a', { resolved: true })])
     release()
     await change
-    await tick(0)
     expect(controller.find('a')?.resolved).toBe(true)
     expect(f.list.mock.calls.length).toBeGreaterThanOrEqual(3)
   })

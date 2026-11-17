@@ -6,10 +6,8 @@ defmodule TelaWeb.TemplateControllerTest do
   setup %{conn: conn} do
     assert Seed.seed!() == 10
 
-    csrf_conn = get(conn, "/")
-
-    [_, token] =
-      Regex.run(~r/<meta name="csrf-token" content="([^"]+)"/, response(csrf_conn, 200))
+    csrf_conn = get(conn, "/api/csrf")
+    %{"csrf_token" => token} = json_response(csrf_conn, 200)
 
     {:ok, conn: recycle(csrf_conn) |> put_req_header("x-csrf-token", token)}
   end

@@ -202,18 +202,6 @@ export function useAssetsList(query: AssetQuery & { ordering?: string }) {
   })
 }
 
-export function useUpdateAsset() {
-  const client = useQueryClient()
-  return useMutation({
-    mutationFn: ({ id, ...input }: { id: string; name?: string; tags?: string[] }) => assetsApi.update(id, input),
-    onSuccess: (asset: Asset) => {
-      client.setQueriesData<InfiniteData<Page<Asset>, number>>({ queryKey: ['assets', 'list'] }, (data) =>
-        data ? { ...data, pages: data.pages.map((page) => ({ ...page, results: page.results.map((item) => (item.id === asset.id ? asset : item)) })) } : data,
-      )
-    },
-  })
-}
-
 export function useDeleteAsset() {
   const client = useQueryClient()
   return useMutation({

@@ -12,10 +12,8 @@ defmodule TelaWeb.DesignControllerTest do
       Application.delete_env(:tela, :uploads_dir)
     end)
 
-    csrf_conn = get(conn, "/")
-
-    [_, token] =
-      Regex.run(~r/<meta name="csrf-token" content="([^"]+)"/, response(csrf_conn, 200))
+    csrf_conn = get(conn, "/api/csrf")
+    %{"csrf_token" => token} = json_response(csrf_conn, 200)
 
     {:ok, conn: recycle(csrf_conn) |> put_req_header("x-csrf-token", token)}
   end

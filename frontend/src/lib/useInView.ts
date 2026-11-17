@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 
 /** True while `element` intersects the viewport (used for infinite scroll sentinels). */
-export function useInView(element: Element | null, rootMargin = "400 pixels"): boolean {
+export function useInView(element: Element | null, rootMargin = "400px"): boolean {
   const [inView, setInView] = useState(false)
   useEffect(() => {
     if (!element || typeof IntersectionObserver === 'undefined') return undefined

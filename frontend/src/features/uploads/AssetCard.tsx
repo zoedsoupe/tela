@@ -1,5 +1,5 @@
 
-import { MoreHorizontal, Pencil, Tag, Trash2 } from 'lucide-react'
+import { MoreHorizontal, Trash2 } from 'lucide-react'
 import { formatBytes } from "@/lib/time"
 import type { Asset } from "@/types/api"
 import { Badge, IconButton, Menu, MenuItem, Thumbnail } from "@/ui"
@@ -7,11 +7,10 @@ import styles from "./AssetCard.module.css"
 
 export interface AssetCardProps {
   asset: Asset
-  onEdit(asset: Asset): void
   onDelete(asset: Asset): void
 }
 
-export function AssetCard({ asset, onEdit, onDelete }: AssetCardProps) {
+export function AssetCard({ asset, onDelete }: AssetCardProps) {
   return (
     <article className={styles.card}>
       <Thumbnail src={asset.thumb_url || asset.url} alt={`Visualização de ${asset.name}`} aspect={1} fit="contain" className={styles.thumb} />
@@ -37,10 +36,6 @@ export function AssetCard({ asset, onEdit, onDelete }: AssetCardProps) {
       </div>
       <div className={styles.menu}>
         <Menu label={`Ações para ${asset.name}`} placement="bottom-end" trigger={<IconButton size="sm" variant="secondary" label={`Mais ações para ${asset.name}`} icon={<MoreHorizontal size={18} />} />}>
-          <MenuItem icon={<Pencil size={16} />} onSelect={() => onEdit(asset)}>
-            {"Renomear"}</MenuItem>
-          <MenuItem icon={<Tag size={16} />} onSelect={() => onEdit(asset)}>
-            {"Editar tags"}</MenuItem>
           <MenuItem icon={<Trash2 size={16} />} danger onSelect={() => onDelete(asset)}>
             {"Excluir"}</MenuItem>
         </Menu>

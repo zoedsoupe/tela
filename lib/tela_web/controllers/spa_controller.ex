@@ -9,6 +9,12 @@ defmodule TelaWeb.SPAController do
     serve_document(conn, "presenter-view.html")
   end
 
+  def api_not_found(conn, _params) do
+    conn
+    |> put_status(:not_found)
+    |> json(%{error: %{code: "not_found", message: "Rota da API não encontrada."}})
+  end
+
   defp serve_document(conn, filename) do
     path = Path.join(distribution_dir(), filename)
 
@@ -22,7 +28,10 @@ defmodule TelaWeb.SPAController do
       {:error, _reason} ->
         conn
         |> put_resp_content_type("text/plain")
-        |> send_resp(:service_unavailable, "Frontend não encontrado. Execute npm --prefix frontend run build.")
+        |> send_resp(
+          :service_unavailable,
+          "Frontend não encontrado. Execute npm --prefix frontend run build."
+        )
     end
   end
 

@@ -11,18 +11,18 @@ describe('buildNotes', () => {
   it('writes Markdown with a section per page, in order', () => {
     expect(buildNotes(doc, 'Launch deck', 'markdown')).toBe(
       [
-        '# Speaker notes: Launch deck',
+        '# Notas do apresentador: Launch deck',
         '',
-        '## Page 1: Cover',
+        '## Página 1: Cover',
         '',
         'Welcome everyone.',
         'Introduce yourself.',
         '',
-        '## Page 2: Page 2',
+        '## Página 2: Página 2',
         '',
-        '(no notes)',
+        '(sem notas)',
         '',
-        '## Page 3: Close',
+        '## Página 3: Close',
         '',
         '  Ask for questions.',
         '',
@@ -32,22 +32,24 @@ describe('buildNotes', () => {
 
   it('writes plain text with underlined headings', () => {
     const text = buildNotes(doc, 'Launch deck', 'text')
-    expect(text.startsWith('Speaker notes: Launch deck\n==========================\n\nPage 1: Cover\n-------------\n\nWelcome everyone.')).toBe(true)
+    const heading = 'Notas do apresentador: Launch deck'
+    const section = 'Página 1: Cover'
+    expect(text.startsWith(`${heading}\n${'='.repeat(heading.length)}\n\n${section}\n${'-'.repeat(section.length)}\n\nWelcome everyone.`)).toBe(true)
     expect(text.endsWith('  Ask for questions.\n')).toBe(true)
-    expect(text).toContain('(no notes)')
+    expect(text).toContain('(sem notas)')
     expect(text).not.toContain('#')
   })
 
   it('keeps the notes verbatim and puts a multi-line title or page name on one line', () => {
     const tricky = docOf(page('a', { name: 'Line\none', notes: '<script>alert(1)</script> **bold** # not a heading' }))
     const md = buildNotes(tricky, 'A\nB', 'markdown')
-    expect(md).toContain('# Speaker notes: A B')
-    expect(md).toContain('## Page 1: Line one')
+    expect(md).toContain('# Notas do apresentador: A B')
+    expect(md).toContain('## Página 1: Line one')
     expect(md).toContain('<script>alert(1)</script> **bold** # not a heading')
   })
 
   it('names an untitled design', () => {
-    expect(buildNotes(docOf(page('a')), '   ', 'markdown')).toContain('# Speaker notes: Untitled design')
+    expect(buildNotes(docOf(page('a')), '   ', 'markdown')).toContain('# Notas do apresentador: Design sem título')
   })
 
   it('ends with exactly one newline', () => {

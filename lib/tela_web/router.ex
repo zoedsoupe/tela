@@ -38,7 +38,7 @@ defmodule TelaWeb.Router do
     get "/template-assets/:kind/:filename", TemplateController, :asset
     get "/harness", SPAController, :index
     get "/presenter-view.html", SPAController, :presenter
-    live "/", DashboardLive, :index
+    get "/", SPAController, :index
     live "/brand-kits", BrandKitsLive, :index
     live "/designs/:id", EditorLive, :show
     post "/profiles", ProfileController, :create
@@ -117,11 +117,23 @@ defmodule TelaWeb.Router do
     post "/:token/versions/:id/restore", SharedController, :restore_version
   end
 
+  scope "/api", TelaWeb do
+    pipe_through :api
+
+    match :*, "/*path", SPAController, :api_not_found
+  end
+
   if Application.compile_env(:tela, :dev_routes, false) do
     scope "/dev", TelaWeb do
       pipe_through :browser
 
       live "/styleguide", StyleguideLive, :index
     end
+  end
+
+  scope "/", TelaWeb do
+    pipe_through :browser
+
+    get "/*path", SPAController, :index
   end
 end

@@ -14,9 +14,13 @@ export interface DesignSummary {
   width: number
   height: number
   preset: string
+  category?: string
+  /** Phoenix field names retained at the transport boundary. */
+  preset_id?: string | null
   page_count: number
   thumbnail_url: string | null
   folder: string | null
+  folder_id?: string | null
   starred: boolean
   revision: number
   created_at: string
@@ -43,8 +47,10 @@ export interface DesignCreateInput {
   width?: number
   height?: number
   preset?: string
+  preset_id?: string
   document?: DoryDocument
   folder?: string | null
+  folder_id?: string | null
   template?: string
 }
 
@@ -52,7 +58,9 @@ export interface DesignPatchInput {
   title?: string
   document?: DoryDocument
   base_revision?: number
+  expected_revision?: number
   folder?: string | null
+  folder_id?: string | null
   starred?: boolean
 }
 
@@ -62,6 +70,7 @@ export interface FolderT {
   id: string
   name: string
   parent: string | null
+  parent_id?: string | null
   design_count: number
   created_at: string
 }
@@ -85,6 +94,14 @@ export interface Asset {
   tags: string[]
   attribution: null
   duration_ms?: number | null
+  video?: {
+    posterUrl?: string
+    durationMs?: number
+    fps?: number
+    hasAudio?: boolean
+    width?: number
+    height?: number
+  } | null
   created_at: string
 }
 
@@ -236,6 +253,8 @@ export interface CommentInput {
   x?: number | null
   y?: number | null
   parent?: string | null
+  parent_id?: string | null
+  author_name?: string
 }
 
 export interface CommentMove {

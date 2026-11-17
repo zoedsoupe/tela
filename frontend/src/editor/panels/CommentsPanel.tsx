@@ -84,7 +84,7 @@ function Comments({ controller, close }: { controller: CommentsController; close
   const actions = useCommentActions(controller)
   const [pin, setPin] = useState(true)
 
-  // While the list is open it is kept fresh. Opening it shows the pins and, on a desktop screen, starts comment mode: the next click
+  // Opening the list loads its snapshot and shows the pins. On a desktop screen it also starts comment mode: the next click
   // on a page is a comment. Closing it there puts everything away; on a small screen the sheet is only a list, and the pins stay.
   useEffect(() => controller.watch(), [controller])
   useEffect(() => {

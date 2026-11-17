@@ -5,6 +5,7 @@ import { createMemoryAdapter } from '../../dev/memoryAdapter'
 import { EditorProvider } from '../../EditorProvider'
 import { EditorEngine } from '../../engine/editor'
 import { EMPTY_SELECTION } from '../../store/editorStore'
+import { t } from '../../strings'
 import { FieldPanel, OverflowSections } from './common'
 
 function mount() {
@@ -24,14 +25,14 @@ function mount() {
 describe('FieldPanel', () => {
   it('cleans typed keys and blocks a key already used on the page', () => {
     const engine = mount()
-    const key = screen.getByRole('textbox', { name: 'Field key' })
-    const apply = screen.getByRole('button', { name: 'Apply' })
+    const key = screen.getByRole('textbox', { name: t.ctx.fieldKey })
+    const apply = screen.getByRole('button', { name: t.ctx.fieldApply })
     expect(apply).toBeDisabled()
     fireEvent.change(key, { target: { value: 'Hero Title' } })
     expect(key).toHaveValue('hero_title')
     expect(apply).toBeEnabled()
     fireEvent.change(key, { target: { value: 'headline' } })
-    expect(screen.getByRole('alert')).toHaveTextContent('already used')
+    expect(screen.getByRole('alert')).toHaveTextContent(t.ctx.fieldDuplicate)
     expect(apply).toBeDisabled()
     engine.dispose()
   })

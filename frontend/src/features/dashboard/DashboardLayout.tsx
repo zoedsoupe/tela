@@ -1,7 +1,9 @@
 
-import { Folder, FolderClosed, Home, LayoutTemplate, Palette, Search, Star, Trash2, Upload } from 'lucide-react'
+import { Folder, FolderClosed, Home, LayoutTemplate, Palette, Search, Settings2, Star, Trash2, Upload } from 'lucide-react'
 import { Suspense, useState, type FormEvent } from 'react'
 import { Link, NavLink, Outlet, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
+import { useQuery } from "@tanstack/react-query"
+import { profilesApi } from "@/lib/api"
 import { useFolders } from "@/lib/api/hooks"
 import { CreateMenu } from "./CreateMenu"
 import { usePageMeta } from "@/lib/usePageMeta"
@@ -11,17 +13,17 @@ import styles from "./DashboardLayout.module.css"
 type NavItem = { to: string; label: string; icon: typeof Home; end: boolean }
 
 const MAIN: NavItem[] = [
-  { to: "/painel", label: "Página inicial", icon: Home, end: true },
-  { to: "/painel/projetos", label: "Projetos", icon: Folder, end: false },
-  { to: "/painel/com estrela", label: "Com estrela", icon: Star, end: false },
-  { to: "/painel/modelos", label: "Modelos", icon: LayoutTemplate, end: false },
+  { to: "/inicio", label: "Página inicial", icon: Home, end: true },
+  { to: "/projetos", label: "Projetos", icon: Folder, end: false },
+  { to: "/favoritos", label: "Favoritos", icon: Star, end: false },
+  { to: "/templates", label: "Modelos", icon: LayoutTemplate, end: false },
 ]
 const LIBRARY: NavItem[] = [
-  { to: "/painel/marca", label: "Marca", icon: Palette, end: false },
-  { to: "/painel/carregamentos", label: "Envios", icon: Upload, end: false },
+  { to: "/marca", label: "Marca", icon: Palette, end: false },
+  { to: "/uploads", label: "Envios", icon: Upload, end: false },
 ]
 const FOOT: NavItem[] = [
-  { to: "/painel/lixeira", label: "Lixo", icon: Trash2, end: false },
+  { to: "/lixeira", label: "Lixeira", icon: Trash2, end: false },
 ]
 /** The tab bar on small screens has room for the main places only. */
 const TABS: NavItem[] = [...MAIN, ...LIBRARY, ...FOOT]
@@ -49,7 +51,7 @@ function SidebarFolders() {
     <div className={styles.group}>
       <p className={styles.groupLabel}>{"Pastas"}</p>
       {top.slice(0, SIDEBAR_FOLDERS).map((folder) => (
-        <NavLink key={folder.id} to={`/painel/designs/pasta/${folder.id}`} className={`${styles.link} ${styles.folder}`}>
+        <NavLink key={folder.id} to={`/pastas/${folder.id}`} className={`${styles.link} ${styles.folder}`}>
           <FolderClosed size={16} aria-hidden="true" />
           <span className={styles.folderName}>{folder.name}</span>
           <span className={styles.count}>{folder.design_count}</span>
@@ -57,7 +59,7 @@ function SidebarFolders() {
       ))}
       {top.length > SIDEBAR_FOLDERS ? (
         <Link to="/painel/projetos" className={styles.allFolders}>
-          {"Todos "}{top.length} {"folders"}</Link>
+          {"Todas as "}{top.length} {"pastas"}</Link>
       ) : null}
     </div>
   )
@@ -71,7 +73,7 @@ function DashboardSearch({ initial }: { initial: string }) {
   function submitSearch(event: FormEvent) {
     event.preventDefault()
     const q = search.trim()
-    navigate(q ? `/painel/projetos?q=${encodeURIComponent(q)}` : "/painel/projetos")
+    navigate(q ? `/projetos?q=${encodeURIComponent(q)}` : "/projetos")
   }
 
   return (
@@ -86,12 +88,13 @@ export default function DashboardLayout() {
   usePageMeta({ noindex: true })
   const location = useLocation()
   const [params] = useSearchParams()
-  const searchValue = location.pathname.startsWith("/dashboard/designs") ? (params.get('q') ?? '') : ''
+  const searchValue = location.pathname.startsWith("/projetos") ? (params.get('q') ?? '') : ''
+  const profile = useQuery({ queryKey: ['profiles'], queryFn: ({ signal }) => profilesApi.list(signal) })
 
   return (
     <div className={styles.shell}>
       <aside className={styles.sidebar}>
-        <Link to="/painel" className={styles.logo} aria-label="Painel Tela">
+        <Link to="/" className={styles.logo} aria-label="Biblioteca do Tela">
           <Logo height={30} />
         </Link>
         <nav aria-label={"Painel"} className={styles.nav}>
@@ -110,11 +113,15 @@ export default function DashboardLayout() {
       </aside>
       <div className={styles.column}>
         <header className={styles.topbar}>
-          <Link to="/painel" className={styles.mobileLogo} aria-label="Painel Tela">
+          <Link to="/" className={styles.mobileLogo} aria-label="Biblioteca do Tela">
             <Logo variant="mark" height={30} />
           </Link>
           <DashboardSearch key={searchValue} initial={searchValue} />
           <div className={styles.actions}>
+            <Link to="/configuracoes" className={styles.profile} aria-label="Configurações do perfil">
+              <Settings2 size={16} aria-hidden="true" />
+              <span>{profile.data?.current_profile?.name ?? "Perfil"}</span>
+            </Link>
             <CreateMenu />
           </div>
         </header>
@@ -131,6 +138,11 @@ export default function DashboardLayout() {
             <Outlet />
           </Suspense>
         </main>
+        <footer className={styles.credit}>
+          <a href="https://github.com/shaongitbd/doory" target="_blank" rel="noreferrer">
+            Doory by Siam, creator and maintainer of Doory, https://github.com/shaongitbd/doory
+          </a>
+        </footer>
       </div>
     </div>
   )

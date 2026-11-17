@@ -2,7 +2,7 @@
  * The single HTTP seam of the app: same-origin JSON over fetch with session cookies and CSRF.
  * Every failure surfaces as an `ApiError` so UI code never inspects raw Responses.
  */
-export const API_BASE = "/api/v1"
+export const API_BASE = "/api"
 
 export type QueryValue = string | number | boolean | null | undefined
 
@@ -97,7 +97,7 @@ export interface RequestOptions {
 type Method = 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE'
 const SAFE_METHODS: ReadonlySet<Method> = new Set<Method>(['GET'])
 
-const NETWORK_MESSAGE = "We couldn't reach Tela. Check your connection and try again."
+const NETWORK_MESSAGE = "Não foi possível conectar ao Tela. Verifique sua conexão e tente novamente."
 
 let unauthorizedHandler: (() => void) | null = null
 
@@ -116,12 +116,17 @@ function readCookie(name: string): string | null {
 }
 
 let csrfRequest: Promise<void> | null = null
+let csrfToken: string | null = null
 
 /** Fetches the CSRF cookie once when it is missing (or when `force` is set). */
 export async function ensureCsrf(force = false): Promise<void> {
   if (!force && readCookie('csrftoken')) return
-  csrfRequest ??= fetch(`${API_BASE}/auth/csrf/`, { credentials: 'include' })
-    .then(() => undefined)
+  csrfRequest ??= fetch(`${API_BASE}/csrf`, { credentials: 'include' })
+    .then(async (response) => {
+      if (!response.ok) throw new Error('CSRF token request failed')
+      const body = (await response.json()) as { csrf_token?: unknown }
+      csrfToken = typeof body.csrf_token === 'string' ? body.csrf_token : null
+    })
     .catch(() => {
       throw new ApiError({ status: 0, code: 'network_error', message: NETWORK_MESSAGE })
     })
@@ -176,14 +181,14 @@ async function toApiError(response: Response): Promise<ApiError> {
     return new ApiError({
       status: response.status,
       code: typeof envelope.code === 'string' ? envelope.code : `http_${response.status}`,
-      message: typeof envelope.message === 'string' ? envelope.message : 'Something went wrong.',
+      message: typeof envelope.message === 'string' ? envelope.message : 'Algo deu errado.',
       fields: envelope.fields && typeof envelope.fields === 'object' ? (envelope.fields as Record<string, string[] | string>) : undefined,
       fieldCodes: envelope.field_codes && typeof envelope.field_codes === 'object' ? (envelope.field_codes as Record<string, string[] | string>) : undefined,
       retryAfter: typeof envelope.retry_after === 'number' ? envelope.retry_after : headerRetry,
       data: body,
     })
   }
-  const message = response.status >= 500 ? 'Tela had a problem on its side. Please try again in a moment.' : 'The request could not be completed.'
+  const message = response.status >= 500 ? 'O Tela teve um problema. Tente novamente em instantes.' : 'Não foi possível concluir a solicitação.'
   return new ApiError({ status: response.status, code: response.status >= 500 ? 'server_error' : `http_${response.status}`, message, retryAfter: headerRetry, data: body })
 }
 
@@ -198,8 +203,8 @@ async function send(method: Method, path: string, options: RequestOptions, retri
   }
   if (!SAFE_METHODS.has(method)) {
     await ensureCsrf()
-    const token = readCookie('csrftoken')
-    if (token) headers.set("X-CSRFToken", token)
+    const token = readCookie('csrftoken') ?? csrfToken
+    if (token) headers.set("X-CSRF-Token", token)
   }
   const url = `${API_BASE}${path}${buildQuery(options.query)}`
   let response: Response
@@ -248,5 +253,6 @@ export const http = {
 /** Test helper: forget cached CSRF/handler state. */
 export function resetClientState(): void {
   csrfRequest = null
+  csrfToken = null
   unauthorizedHandler = null
 }

@@ -7,14 +7,12 @@ const MAX_MINE_PAGES = 10
 const MAX_CATALOGUE_PAGES = 50
 
 export const fontsApi = {
-  weights: (family: string) => http.get<{ enabled: boolean; weights: Array<{ weight: number; style: 'normal' | 'italic' }> }>("/fonts/weights/", { query: { family } }),
-  addWeight: (family: string, weight: number, style: 'normal' | 'italic') => http.post<FontFamily>("/fonts/weights/", { json: { family, weight, style } }),
-  list: (query: FontQuery = {}, signal?: AbortSignal) => http.get<Page<FontFamily>>("/fonts/", { query: { ordering: 'popularity', ...query }, signal }),
+  list: (query: FontQuery = {}, signal?: AbortSignal) => http.get<Page<FontFamily>>("/fonts", { query: { ordering: 'popularity', ...query }, signal }),
   /** Every family of the catalogue, by name (all pages, for a list the user picks from). */
   all: async (signal?: AbortSignal): Promise<FontFamily[]> => {
     const families: FontFamily[] = []
     for (let page = 1; page <= MAX_CATALOGUE_PAGES; page++) {
-      const result = await http.get<Page<FontFamily>>("/fonts/", { query: { ordering: 'family', page, page_size: 100 }, signal })
+      const result = await http.get<Page<FontFamily>>("/fonts", { query: { ordering: 'family', page, page_size: 100 }, signal })
       families.push(...result.results)
       if (!result.next) break
     }
@@ -24,7 +22,7 @@ export const fontsApi = {
   mine: async (signal?: AbortSignal): Promise<FontFamily[]> => {
     const families: FontFamily[] = []
     for (let page = 1; page <= MAX_MINE_PAGES; page++) {
-      const result = await http.get<Page<FontFamily>>("/fonts/mine/", { query: { page }, signal })
+      const result = await http.get<Page<FontFamily>>("/fonts/mine", { query: { page }, signal })
       families.push(...result.results)
       if (!result.next) break
     }
@@ -35,7 +33,7 @@ export const fontsApi = {
     for (const file of input.files) form.append('files', file, file.name)
     if (input.family) form.append('family', input.family)
     if (input.category) form.append('category', input.category)
-    return http.post<FontFamily>("/fonts/mine/", { form, signal: options.signal, onUploadProgress: options.onProgress })
+    return http.post<FontFamily>("/fonts/mine", { form, signal: options.signal, onUploadProgress: options.onProgress })
   },
-  removeMine: (id: string) => http.delete<void>(`/fonts/mine/${id}/`),
+  removeMine: (id: string) => http.delete<void>(`/fonts/mine/${encodeURIComponent(id)}`),
 }

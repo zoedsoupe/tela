@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { t } from '../strings'
 import { loadable } from './loadable'
 
 function Hello({ name }: { name: string }) {
@@ -32,7 +33,7 @@ describe('loadable', () => {
   it('announces the default placeholder as busy', () => {
     const Lazy = loadable(() => new Promise<typeof Hello>(() => undefined))
     render(<Lazy name="Ana" />)
-    expect(screen.getByRole('status', { name: 'Loading…' })).toHaveAttribute('aria-busy', 'true')
+    expect(screen.getByRole('status', { name: t.lazy.loading })).toHaveAttribute('aria-busy', 'true')
   })
 
   it('starts the download once on preload and reuses it when rendered', async () => {
@@ -50,8 +51,8 @@ describe('loadable', () => {
     const load = vi.fn<() => Promise<typeof Hello>>().mockRejectedValueOnce(new Error('offline')).mockResolvedValue(Hello)
     const Lazy = loadable(load)
     render(<Lazy name="Cy" />)
-    expect(await screen.findByRole('alert')).toHaveTextContent('could not be loaded')
-    await userEvent.click(screen.getByRole('button', { name: 'Try again' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent(t.lazy.failed)
+    await userEvent.click(screen.getByRole('button', { name: t.lazy.retry }))
     expect(await screen.findByText('Hello Cy')).toBeInTheDocument()
     expect(load).toHaveBeenCalledTimes(2)
   })

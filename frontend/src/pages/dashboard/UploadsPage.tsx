@@ -3,10 +3,9 @@ import { Search, Upload } from 'lucide-react'
 import { useState } from 'react'
 import { errorMessage } from "@/features/dashboard/errorMessage"
 import { AssetCard } from "@/features/uploads/AssetCard"
-import { EditAssetDialog } from "@/features/uploads/EditAssetDialog"
 import { UploadDropzone } from "@/features/uploads/UploadDropzone"
 import { useUploadQueue } from "@/features/uploads/useUploadQueue"
-import { flattenPages, useAssetsList, useDeleteAsset, useUpdateAsset } from "@/lib/api/hooks"
+import { flattenPages, useAssetsList, useDeleteAsset } from "@/lib/api/hooks"
 import { useDebouncedValue } from "@/lib/useDebouncedValue"
 import { usePageTitle } from "@/lib/usePageTitle"
 import type { Asset, AssetKind } from "@/types/api"
@@ -26,9 +25,7 @@ export default function UploadsPage() {
   const [filter, setFilter] = useState<Filter>('all')
   const list = useAssetsList({ q: q || undefined, kind: filter === 'all' ? undefined : filter, ordering: "-criado_em" })
   const assets = flattenPages(list.data)
-  const update = useUpdateAsset()
   const remove = useDeleteAsset()
-  const [editing, setEditing] = useState<Asset | null>(null)
   const [deleting, setDeleting] = useState<Asset | null>(null)
 
   return (
@@ -82,7 +79,7 @@ export default function UploadsPage() {
             <ul className={uploadStyles.grid}>
               {assets.map((asset) => (
                 <li key={asset.id}>
-                  <AssetCard asset={asset} onEdit={setEditing} onDelete={setDeleting} />
+                  <AssetCard asset={asset} onDelete={setDeleting} />
                 </li>
               ))}
             </ul>
@@ -96,24 +93,6 @@ export default function UploadsPage() {
         </div>
       </section>
 
-      <EditAssetDialog
-        asset={editing}
-        busy={update.isPending}
-        onClose={() => setEditing(null)}
-        onSave={(input) =>
-          editing &&
-          update.mutate(
-            { id: editing.id, ...input },
-            {
-              onSuccess: () => {
-                setEditing(null)
-                toast({ title: "Carregamento atualizado", variant: 'success' })
-              },
-              onError: (error) => toast({ title: "Não foi possível salvar as alterações", description: errorMessage(error), variant: 'error' }),
-            },
-          )
-        }
-      />
       <ConfirmDialog
         open={deleting !== null}
         title={`Excluir “${deleting?.name ?? ''}”?`}

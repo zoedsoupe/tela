@@ -8,7 +8,8 @@ import { EditorProvider } from '../EditorProvider'
 import { EditorEngine } from '../engine/editor'
 import { EMPTY_SELECTION } from '../store/editorStore'
 import { LimitedNumber, RotateTool, Stepper } from './controls'
-import { CORNER_RADIUS, FONT_SIZE, LETTER_SPACING, LINE_HEIGHT, STROKE_WIDTH, capLimit, type Limit } from './limits'
+import { CORNER_RADIUS, FONT_SIZE, LETTER_SPACING, LINE_HEIGHT, STROKE_WIDTH, capLimit, rangeHint, type Limit } from './limits'
+import { t } from '../strings'
 
 async function typeInto(input: HTMLElement, text: string): Promise<void> {
   await userEvent.clear(input)
@@ -24,7 +25,7 @@ describe('Stepper (font size, 8-200)', () => {
 
   it('shows the range as its tooltip and in the input’s native bounds', () => {
     const { input } = setup()
-    expect(input).toHaveAttribute('title', 'Between 8 and 200')
+    expect(input).toHaveAttribute('title', rangeHint(FONT_SIZE))
     expect(input).toHaveAttribute('min', '8')
     expect(input).toHaveAttribute('max', '200')
   })
@@ -61,14 +62,14 @@ describe('Stepper (font size, 8-200)', () => {
 
   it('stops the − and + buttons at the ends and the arrow keys never leave the range', async () => {
     const low = setup(8)
-    expect(screen.getByRole('button', { name: 'Decrease size' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: t.ctx.decreaseSize })).toBeDisabled()
     await userEvent.type(low.input, '{ArrowDown}')
     expect(low.onChange).toHaveBeenLastCalledWith(8, 'step')
   })
 
   it('stops + at the top', async () => {
     const { onChange } = setup(200)
-    expect(screen.getByRole('button', { name: 'Increase size' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: t.ctx.increaseSize })).toBeDisabled()
     await userEvent.type(screen.getByRole('spinbutton', { name: 'Font size' }), '{Shift>}{ArrowUp}{/Shift}')
     expect(onChange).toHaveBeenLastCalledWith(200, 'step')
   })
@@ -92,10 +93,10 @@ function Harness({ label, limit, initial, onChange }: { label: string; limit: Li
 }
 
 const FIELDS = [
-  { name: 'Line height', limit: LINE_HEIGHT, hint: 'Between 0.5 and 3', below: '0.2', above: '9', initial: 1.2 },
-  { name: 'Letter spacing', limit: LETTER_SPACING, hint: 'Between -200 and 800', below: '-900', above: '5000', initial: 0 },
-  { name: 'Stroke width', limit: STROKE_WIDTH, hint: 'Between 0 and 20', below: '-4', above: '99', initial: 4 },
-  { name: 'Corner radius', limit: CORNER_RADIUS, hint: 'Between 0 and 100', below: '-1', above: '250', initial: 10 },
+  { name: 'Line height', limit: LINE_HEIGHT, hint: rangeHint(LINE_HEIGHT), below: '0.2', above: '9', initial: 1.2 },
+  { name: 'Letter spacing', limit: LETTER_SPACING, hint: rangeHint(LETTER_SPACING), below: '-900', above: '5000', initial: 0 },
+  { name: 'Stroke width', limit: STROKE_WIDTH, hint: rangeHint(STROKE_WIDTH), below: '-4', above: '99', initial: 4 },
+  { name: 'Corner radius', limit: CORNER_RADIUS, hint: rangeHint(CORNER_RADIUS), below: '-1', above: '250', initial: 10 },
 ]
 
 describe.each(FIELDS)('$name', ({ name, limit, hint, below, above, initial }) => {
@@ -172,7 +173,7 @@ describe('LimitedNumber details', () => {
     const onChange = vi.fn()
     render(<Harness label="Corner radius" limit={capLimit(CORNER_RADIUS, 30)} initial={10} onChange={onChange} />)
     const input = screen.getByRole('spinbutton', { name: 'Corner radius' })
-    expect(input).toHaveAttribute('title', 'Between 0 and 30')
+    expect(input).toHaveAttribute('title', rangeHint(capLimit(CORNER_RADIUS, 30)))
     await typeInto(input, '80')
     await userEvent.tab()
     expect(onChange).toHaveBeenLastCalledWith(30)
@@ -197,17 +198,17 @@ describe('RotateTool', () => {
 
   it('opens a menu of turns for an unlocked selection', async () => {
     const { engine, rotateBy } = mount(false)
-    await userEvent.click(screen.getByRole('button', { name: 'Rotate' }))
-    await userEvent.click(screen.getByRole('menuitem', { name: /Rotate right 90°/ }))
+    await userEvent.click(screen.getByRole('button', { name: t.toolbar.rotate }))
+    await userEvent.click(screen.getByRole('menuitem', { name: new RegExp(t.ctx.rotateRight) }))
     expect(rotateBy).toHaveBeenCalledExactlyOnceWith(90)
     engine.dispose()
   })
 
   it('stays in place for a locked selection, disabled and explaining why, so the buttons beside it do not move', async () => {
     const { engine, rotateBy } = mount(true)
-    const button = screen.getByRole('button', { name: 'Rotation locked' })
+    const button = screen.getByRole('button', { name: t.ctx.rotationLocked })
     expect(button).toBeDisabled()
-    expect(screen.queryByRole('button', { name: 'Rotate' })).toBeNull()
+    expect(screen.queryByRole('button', { name: t.toolbar.rotate })).toBeNull()
     await userEvent.click(button)
     expect(screen.queryByRole('menu')).toBeNull()
     expect(rotateBy).not.toHaveBeenCalled()
@@ -216,13 +217,13 @@ describe('RotateTool', () => {
 
   it('closes an open menu when the selection gets locked, and does not reopen it after the unlock', async () => {
     const { engine, select } = mount(false)
-    await userEvent.click(screen.getByRole('button', { name: 'Rotate' }))
+    await userEvent.click(screen.getByRole('button', { name: t.toolbar.rotate }))
     expect(screen.getByRole('menu')).toBeInTheDocument()
     act(() => select(true))
-    expect(screen.getByRole('button', { name: 'Rotation locked' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: t.ctx.rotationLocked })).toBeDisabled()
     expect(screen.queryByRole('menu')).toBeNull()
     act(() => select(false))
-    expect(screen.getByRole('button', { name: 'Rotate' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: t.toolbar.rotate })).toBeInTheDocument()
     expect(screen.queryByRole('menu')).toBeNull()
     engine.dispose()
   })

@@ -120,7 +120,7 @@ export function TemplatesBrowser() {
           filtered ? (
             <EmptyState icon={<Search size={28} />} title={"Nenhum modelo corresponde"} description={"Experimente palavras diferentes ou limpe os filtros para ver tudo."} action={<Button variant="secondary" onClick={clearFilters}>{"Limpar filtros"}</Button>} />
           ) : (
-            <EmptyState icon={<LayoutTemplate size={28} />} title={"Os modelos estão a caminho"} description={"Este servidor Doory ainda não possui modelos. Você ainda pode começar com uma tela em branco."} />
+            <EmptyState icon={<LayoutTemplate size={28} />} title={"Os modelos estão a caminho"} description={"Esta instância do Tela ainda não possui modelos. Você ainda pode começar com uma tela em branco."} />
           )
         ) : (
           <>

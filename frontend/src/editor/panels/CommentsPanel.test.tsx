@@ -61,14 +61,14 @@ describe('the Comments sidebar', () => {
     expect(within(group).getByRole('radio', { name: `${t.comments.filter.unresolved} 4` })).toBeInTheDocument()
     expect(within(group).getByRole('radio', { name: `${t.comments.filter.mine} 1` })).toBeInTheDocument()
 
-    await userEvent.click(within(group).getByRole('radio', { name: /^Unresolved/ }))
+    await userEvent.click(within(group).getByRole('radio', { name: new RegExp(`^${t.comments.filter.unresolved}`) }))
     expect(threads()).toHaveLength(4)
-    await userEvent.click(within(group).getByRole('radio', { name: /^Mine/ }))
+    await userEvent.click(within(group).getByRole('radio', { name: new RegExp(`^${t.comments.filter.mine}`) }))
     expect(threads()).toHaveLength(1)
     expect(threads()[0]).toHaveTextContent('Colocação do logotipo aprovada.')
 
     // Reopening the resolved thread and looking at "Unresolved" while it is the open one keeps it in the list.
-    await userEvent.click(within(group).getByRole('radio', { name: /^Unresolved/ }))
+    await userEvent.click(within(group).getByRole('radio', { name: new RegExp(`^${t.comments.filter.unresolved}`) }))
     expect(threads()).toHaveLength(4)
     act(() => r.engine.store.setState((s) => ({ comments: { ...s.comments, activeThreadId: r.handle.comments.snapshot().find((c) => c.body.startsWith('Colocação'))?.id ?? null } })))
     expect(threads()).toHaveLength(5)

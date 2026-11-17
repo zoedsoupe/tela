@@ -63,7 +63,7 @@ describe('NotesBar', () => {
     })
     engine = ctx.engine
     act(() => setNotesOpen(ctx.engine, true))
-    const field = screen.getByRole('textbox', { name: t.notes.forPage('Page 1') })
+    const field = screen.getByRole('textbox', { name: t.notes.forPage(t.workspace.page(1)) })
     expect(field).toHaveValue('Hello there')
     expect(field).toHaveAttribute('maxlength', String(NOTES_MAX_LENGTH))
     expect(screen.getByTestId('ed-notes-counter')).toHaveTextContent('11 / 5000')

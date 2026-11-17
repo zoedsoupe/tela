@@ -27,7 +27,7 @@ describe('http client: requests', () => {
   it('sends GET requests with credentials, JSON accept header and query string', async () => {
     let seen: Request | null = null
     server.use(
-      mswHttp.get('*/api/v1/designs/', ({ request }) => {
+      mswHttp.get('*/api/designs/', ({ request }) => {
         seen = request
         return HttpResponse.json({ count: 0, next: null, previous: null, results: [] })
       }),
@@ -38,11 +38,11 @@ describe('http client: requests', () => {
     const request = seen as unknown as Request
     expect(new URL(request.url).search).toBe('?q=logo&starred=true')
     expect(request.headers.get('accept')).toBe('application/json')
-    expect(request.headers.has('x-csrftoken')).toBe(false)
+    expect(request.headers.has('x-csrf-token')).toBe(false)
   })
 
   it('returns undefined for 204 responses', async () => {
-    server.use(mswHttp.delete('*/api/v1/designs/1/', () => new HttpResponse(null, { status: 204 })))
+    server.use(mswHttp.delete('*/api/designs/1/', () => new HttpResponse(null, { status: 204 })))
     document.cookie = 'csrftoken=abc; path=/'
     await expect(http.delete('/designs/1/')).resolves.toBeUndefined()
   })
@@ -52,7 +52,7 @@ describe('http client: requests', () => {
     let body: unknown
     let contentType: string | null = null
     server.use(
-      mswHttp.post('*/api/v1/designs/', async ({ request }) => {
+      mswHttp.post('*/api/designs/', async ({ request }) => {
         body = await request.json()
         contentType = request.headers.get('content-type')
         return HttpResponse.json({ id: 'd1' }, { status: 201 })
@@ -67,7 +67,7 @@ describe('http client: requests', () => {
     document.cookie = 'csrftoken=tok; path=/'
     let contentType: string | null = null
     server.use(
-      mswHttp.post('*/api/v1/assets/', ({ request }) => {
+      mswHttp.post('*/api/assets/', ({ request }) => {
         contentType = request.headers.get('content-type')
         return HttpResponse.json({ id: 'a1' }, { status: 201 })
       }),
@@ -80,17 +80,17 @@ describe('http client: requests', () => {
 })
 
 describe('http client: CSRF', () => {
-  it('fetches the CSRF cookie lazily once, then sends X-CSRFToken on unsafe methods', async () => {
+  it('fetches the CSRF cookie lazily once, then sends X-CSRF-Token on unsafe methods', async () => {
     let csrfCalls = 0
     const tokens: Array<string | null> = []
     server.use(
-      mswHttp.get('*/api/v1/auth/csrf/', () => {
+      mswHttp.get('*/api/csrf', () => {
         csrfCalls += 1
         document.cookie = 'csrftoken=fresh-token; path=/'
-        return new HttpResponse(null, { status: 204 })
+        return HttpResponse.json({ csrf_token: 'fresh-token' })
       }),
-      mswHttp.post('*/api/v1/designs/1/duplicate/', ({ request }) => {
-        tokens.push(request.headers.get('x-csrftoken'))
+      mswHttp.post('*/api/designs/1/duplicate/', ({ request }) => {
+        tokens.push(request.headers.get('x-csrf-token'))
         return HttpResponse.json({ id: 'd2' }, { status: 201 })
       }),
     )
@@ -102,7 +102,7 @@ describe('http client: CSRF', () => {
 
   it('does not hit the CSRF endpoint when the cookie already exists or for GETs', async () => {
     document.cookie = 'csrftoken=existing; path=/'
-    server.use(mswHttp.get('*/api/v1/config/', () => HttpResponse.json({ ok: true })))
+    server.use(mswHttp.get('*/api/config/', () => HttpResponse.json({ ok: true })))
     await ensureCsrf()
     await http.get('/config/')
   })
@@ -111,12 +111,12 @@ describe('http client: CSRF', () => {
     document.cookie = 'csrftoken=stale; path=/'
     const used: Array<string | null> = []
     server.use(
-      mswHttp.get('*/api/v1/auth/csrf/', () => {
+      mswHttp.get('*/api/csrf', () => {
         document.cookie = 'csrftoken=renewed; path=/'
-        return new HttpResponse(null, { status: 204 })
+        return HttpResponse.json({ csrf_token: 'renewed' })
       }),
-      mswHttp.post('*/api/v1/auth/logout/', ({ request }) => {
-        used.push(request.headers.get('x-csrftoken'))
+      mswHttp.post('*/api/auth/logout/', ({ request }) => {
+        used.push(request.headers.get('x-csrf-token'))
         if (used.length === 1) return HttpResponse.json({ error: { code: 'permission_denied', message: 'CSRF Failed: token missing.' } }, { status: 403 })
         return new HttpResponse(null, { status: 204 })
       }),
@@ -133,7 +133,7 @@ describe('http client: errors', () => {
 
   it('maps the error envelope, normalising field errors to arrays', async () => {
     server.use(
-      mswHttp.post('*/api/v1/auth/register/', () =>
+      mswHttp.post('*/api/auth/register/', () =>
         HttpResponse.json({ error: { code: 'validation_error', message: 'Invalid input.', fields: { email: 'Already used', password: ['Too short', 'Too common'] } } }, { status: 400 }),
       ),
     )
@@ -148,14 +148,14 @@ describe('http client: errors', () => {
   })
 
   it('exposes conflict details from the body', async () => {
-    server.use(mswHttp.patch('*/api/v1/designs/1/', () => HttpResponse.json({ error: { code: 'revision_conflict', message: 'Stale' }, current: { revision: 9 } }, { status: 409 })))
+    server.use(mswHttp.patch('*/api/designs/1/', () => HttpResponse.json({ error: { code: 'revision_conflict', message: 'Stale' }, current: { revision: 9 } }, { status: 409 })))
     const error = (await http.patch('/designs/1/', { json: {} }).catch((e: unknown) => e)) as ApiError
     expect(error.isConflict).toBe(true)
     expect((error.data as { current: { revision: number } }).current.revision).toBe(9)
   })
 
   it('turns fetch failures into network_error ApiErrors', async () => {
-    server.use(mswHttp.get('*/api/v1/config/', () => HttpResponse.error()))
+    server.use(mswHttp.get('*/api/config/', () => HttpResponse.error()))
     const error = (await http.get('/config/').catch((e: unknown) => e)) as ApiError
     expect(error).toBeInstanceOf(ApiError)
     expect(error.isNetwork).toBe(true)
@@ -163,7 +163,7 @@ describe('http client: errors', () => {
   })
 
   it('handles non-JSON server errors with a friendly message', async () => {
-    server.use(mswHttp.get('*/api/v1/config/', () => new HttpResponse('<html>Bad gateway</html>', { status: 502, headers: { 'content-type': 'text/html' } })))
+    server.use(mswHttp.get('*/api/config/', () => new HttpResponse('<html>Bad gateway</html>', { status: 502, headers: { 'content-type': 'text/html' } })))
     const error = (await http.get('/config/').catch((e: unknown) => e)) as ApiError
     expect(error.status).toBe(502)
     expect(error.code).toBe('server_error')
@@ -173,12 +173,12 @@ describe('http client: errors', () => {
   it('retries once on a csrf_failed code even when the message differs', async () => {
     const used: Array<string | null> = []
     server.use(
-      mswHttp.get('*/api/v1/auth/csrf/', () => {
+      mswHttp.get('*/api/csrf', () => {
         document.cookie = 'csrftoken=renewed2; path=/'
-        return new HttpResponse(null, { status: 204 })
+        return HttpResponse.json({ csrf_token: 'renewed2' })
       }),
-      mswHttp.post('*/api/v1/designs/', ({ request }) => {
-        used.push(request.headers.get('x-csrftoken'))
+      mswHttp.post('*/api/designs/', ({ request }) => {
+        used.push(request.headers.get('x-csrf-token'))
         if (used.length === 1) return HttpResponse.json({ error: { code: 'csrf_failed', message: 'Your session expired. Reload and try again.' } }, { status: 403 })
         return HttpResponse.json({ id: 'd' }, { status: 201 })
       }),
@@ -189,7 +189,7 @@ describe('http client: errors', () => {
 
   it('exposes field codes and retry_after from the envelope', async () => {
     server.use(
-      mswHttp.post('*/api/v1/auth/login/', () =>
+      mswHttp.post('*/api/auth/login/', () =>
         HttpResponse.json({ error: { code: 'throttled', message: 'Slow down', retry_after: 42.2, field_codes: { password: 'password_too_common' } } }, { status: 429 }),
       ),
     )
@@ -199,13 +199,13 @@ describe('http client: errors', () => {
   })
 
   it('falls back to the Retry-After header', async () => {
-    server.use(mswHttp.post('*/api/v1/auth/login/', () => HttpResponse.json({ error: { code: 'throttled', message: 'Slow down' } }, { status: 429, headers: { 'retry-after': '30' } })))
+    server.use(mswHttp.post('*/api/auth/login/', () => HttpResponse.json({ error: { code: 'throttled', message: 'Slow down' } }, { status: 429, headers: { 'retry-after': '30' } })))
     const error = (await http.post('/auth/login/', { json: {} }).catch((e: unknown) => e)) as ApiError
     expect(error.retryAfter).toBe(30)
   })
 
   it('flags rate limits', async () => {
-    server.use(mswHttp.post('*/api/v1/auth/login/', () => HttpResponse.json({ error: { code: 'throttled', message: 'Slow down' } }, { status: 429 })))
+    server.use(mswHttp.post('*/api/auth/login/', () => HttpResponse.json({ error: { code: 'throttled', message: 'Slow down' } }, { status: 429 })))
     const error = (await http.post('/auth/login/', { json: {} }).catch((e: unknown) => e)) as ApiError
     expect(error.isRateLimited).toBe(true)
   })
@@ -213,7 +213,7 @@ describe('http client: errors', () => {
   it('calls the 401 handler unless silenced', async () => {
     const handler = vi.fn()
     setUnauthorizedHandler(handler)
-    server.use(mswHttp.get('*/api/v1/designs/', () => HttpResponse.json({ error: { code: 'not_authenticated', message: 'Sign in' } }, { status: 401 })))
+    server.use(mswHttp.get('*/api/designs/', () => HttpResponse.json({ error: { code: 'not_authenticated', message: 'Sign in' } }, { status: 401 })))
     await expect(http.get('/designs/')).rejects.toMatchObject({ status: 401 })
     expect(handler).toHaveBeenCalledTimes(1)
     await expect(http.get('/designs/', { silentUnauthorized: true })).rejects.toMatchObject({ status: 401 })
@@ -285,9 +285,9 @@ describe('http client: uploads with progress', () => {
     await vi.waitFor(() => expect(FakeXhr.instances).toHaveLength(1))
     const xhr = FakeXhr.instances[0]
     expect(xhr.method).toBe('POST')
-    expect(xhr.url).toBe('/api/v1/assets/')
+    expect(xhr.url).toBe('/api/assets/')
     expect(xhr.withCredentials).toBe(true)
-    expect(xhr.headers['x-csrftoken']).toBe('tok')
+    expect(xhr.headers['x-csrf-token']).toBe('tok')
     expect(xhr.headers['content-type']).toBeUndefined()
     xhr.upload.onprogress?.({ lengthComputable: true, loaded: 50, total: 200 })
     xhr.respond(201, { id: 'a1' })

@@ -116,13 +116,13 @@ describe('editor chrome', () => {
     engine = await mount()
     await userEvent.click(screen.getByRole('button', { name: t.topbar.file }))
     const file = screen.getByRole('menu', { name: t.topbar.file })
-    expect(within(file).getByRole('menuitem', { name: /Rename/ })).toBeInTheDocument()
-    expect(within(file).getByRole('menuitem', { name: /Version history/ })).toBeInTheDocument()
+    expect(within(file).getByRole('menuitem', { name: /Renomear/ })).toBeInTheDocument()
+    expect(within(file).getByRole('menuitem', { name: /Histórico de versões/ })).toBeInTheDocument()
     await userEvent.keyboard('{Escape}')
     await userEvent.click(screen.getByRole('button', { name: t.topbar.view }))
     const view = screen.getByRole('menu', { name: t.topbar.view })
     expect(within(view).getByRole('menuitemcheckbox', { name: t.menu.rulers })).toBeInTheDocument()
-    expect(within(view).getByRole('menuitem', { name: /Keyboard shortcuts/ })).toBeInTheDocument()
+    expect(within(view).getByRole('menuitem', { name: /Atalhos de teclado/ })).toBeInTheDocument()
   })
 
   it('switches high contrast from the View menu', async () => {
@@ -226,6 +226,18 @@ describe('SaveStatus', () => {
       </EditorProvider>,
     )
     expect(screen.getByRole('status')).toHaveTextContent(t.save.local)
+    engine.dispose()
+  })
+
+  it('does not report workspace designs as saved only in this browser', async () => {
+    const { engine } = await setupEditor({ mode: 'workspace' })
+    render(
+      <EditorProvider engine={engine} portalRoot={document.body}>
+        <SaveStatus />
+      </EditorProvider>,
+    )
+    expect(screen.getByRole('status')).toHaveTextContent(t.save.ready)
+    expect(screen.getByRole('status')).not.toHaveTextContent(t.save.local)
     engine.dispose()
   })
 })

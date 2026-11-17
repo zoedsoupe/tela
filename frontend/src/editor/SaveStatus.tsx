@@ -8,6 +8,7 @@ export function SaveStatus() {
   const editor = useEditor()
   const save = useEditorState((s) => s.save)
   const readOnly = useEditorState((s) => s.readOnly)
+  const mode = useEditorState((s) => s.mode)
 
   if (readOnly) {
     return (
@@ -66,9 +67,9 @@ export function SaveStatus() {
       )
     default:
       return (
-        <span className={`${styles.pill} ${styles.ok}`} role="status" title={t.save.localHint}>
+        <span className={`${styles.pill} ${styles.ok}`} role="status" title={mode === 'local' ? t.save.localHint : undefined}>
           <Check size={14} aria-hidden="true" />
-          <span className={styles.text}>{t.save.local}</span>
+          <span className={styles.text}>{mode === 'local' ? t.save.local : t.save.ready}</span>
         </span>
       )
   }

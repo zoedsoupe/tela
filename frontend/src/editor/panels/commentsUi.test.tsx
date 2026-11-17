@@ -5,6 +5,7 @@ import { buildThreads } from './commentOps'
 import { commentsOf } from './commentsController'
 import { setCommentMode, setCommentPins } from './commentsMode'
 import { cancelDraft, openThread, revealThread, setDraftBody, startDraft } from './commentsUi'
+import { t } from '../strings'
 
 let rig: CommentsRig | null = null
 afterEach(() => {
@@ -26,11 +27,11 @@ describe('the state of the pins in the editor store', () => {
     const { engine } = make()
     setCommentMode(engine, true)
     expect(engine.state.comments).toMatchObject({ mode: true, pins: true })
-    expect(engine.state.announcement).toMatch(/Comment mode on/)
+    expect(engine.state.announcement).toBe(t.comments.announce.modeOn)
     startDraft(engine, 'page-1', 10, 20)
     setCommentMode(engine, false)
     expect(engine.state.comments).toMatchObject({ mode: false, pins: true, draft: null })
-    expect(engine.state.announcement).toBe('Comment mode off')
+    expect(engine.state.announcement).toBe(t.comments.announce.modeOff)
   })
 
   it('hiding the pins ends comment mode and closes what is open', () => {

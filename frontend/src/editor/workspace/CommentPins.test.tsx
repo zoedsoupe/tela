@@ -106,9 +106,9 @@ describe('pins in page coordinates', () => {
 
   it('numbers the pins like the list and says who, what and how many replies in the name', async () => {
     mount()
-    const pin = await screen.findByRole('button', { name: /Comment 1 by Sam Lee, 1 reply: Experimente um título mais ousado aqui\./ })
+    const pin = await screen.findByRole('button', { name: t.comments.pin.label(1, 'Sam Lee', 'Experimente um título mais ousado aqui.', false, 1) })
     expect(pin).toHaveTextContent('1')
-    expect(named('Colocação do logotipo aprovada')).toHaveAccessibleName(/Comment 3 by Alex Rivera, resolved: Colocação do logotipo aprovada\./)
+    expect(named('Colocação do logotipo aprovada')).toHaveAccessibleName(t.comments.pin.label(3, 'Alex Rivera', 'Colocação do logotipo aprovada.', true, 0))
     expect(named('Colocação do logotipo aprovada')).toHaveAttribute('data-resolved', 'true')
   })
 

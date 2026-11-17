@@ -1,6 +1,7 @@
 /** Test support: an editor engine with one live page, for the tests of the panel, the timeline and the preview. */
 import { StaticCanvas } from 'fabric'
 import { createBlankDocument } from "@/lib/document"
+import type { EditorMode } from "@/types/adapter"
 import type { DocObject, DoryDocument, ObjectAnimation } from "@/types/document"
 import { createMemoryAdapter } from "../dev/memoryAdapter"
 import { EditorEngine } from "../engine/editor"
@@ -47,7 +48,7 @@ export interface Setup {
 }
 
 /** An editor on `doc` (default: one 800 x 600 page) whose first page is mounted and loaded. */
-export async function setupEditor(options: { doc?: DoryDocument; mode?: 'local' | 'shared-view'; objects?: DocObject[] } = {}): Promise<Setup> {
+export async function setupEditor(options: { doc?: DoryDocument; mode?: EditorMode; objects?: DocObject[] } = {}): Promise<Setup> {
   const doc = options.doc ?? createBlankDocument(800, 600)
   if (options.objects) doc.pages[0] = { ...doc.pages[0], objects: options.objects }
   const engine = new EditorEngine({ adapter: createMemoryAdapter().adapter, document: doc, meta: { id: 'd1', title: "Teste", mode: options.mode ?? 'local' }, ephemeral: true })

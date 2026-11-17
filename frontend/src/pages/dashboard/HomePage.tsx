@@ -73,7 +73,7 @@ export default function HomePage() {
                 <LayoutGrid size={24} />
               </span>
               <span className={homeStyles.chipName}>{"Todos os tamanhos"}</span>
-              <span className={homeStyles.chipSize}>{catalogue.presets.length} {"sizes"}</span>
+              <span className={homeStyles.chipSize}>{catalogue.presets.length} {"tamanhos"}</span>
             </button>
           </li>
         </ul>

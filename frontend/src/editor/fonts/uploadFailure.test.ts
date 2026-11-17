@@ -27,7 +27,7 @@ describe('describeUploadFailure', () => {
     expect(describeUploadFailure(api(401, 'not_authenticated'), 'a.ttf').kind).toBe('signed-out')
     expect(describeUploadFailure(api(413, 'http_413'), 'a.ttf').kind).toBe('too-large')
     expect(describeUploadFailure(api(429, 'throttled', 'x', { retryAfter: 12 }), 'a.ttf')).toEqual({ kind: 'rate-limited', message: t.userFonts.errors.rateLimited(12) })
-    expect(t.userFonts.errors.rateLimited(null)).toContain('moment')
+    expect(t.userFonts.errors.rateLimited(null)).toContain('instantes')
   })
 
   it('shows the server message of a server error and a neutral one for anything else', () => {

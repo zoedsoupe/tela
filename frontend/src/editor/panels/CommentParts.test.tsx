@@ -100,7 +100,7 @@ describe('CommentComposer', () => {
     expect(box).toHaveAttribute('maxlength', String(MAX_COMMENT_LENGTH))
     expect(screen.queryByText(/characters left/)).toBeNull()
     fireEvent.change(box, { target: { value: 'x'.repeat(MAX_COMMENT_LENGTH - 20) } })
-    expect(screen.getByText('20 characters left')).toBeInTheDocument()
+    expect(screen.getByText(t.comments.charactersLeft(20))).toBeInTheDocument()
   })
 
   it('can be controlled from outside (the draft kept in the editor) and cancelled', async () => {

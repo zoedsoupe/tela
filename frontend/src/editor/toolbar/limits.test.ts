@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { MAX_DIMENSION_PX } from '@/types/document'
 import { CHAR_SPACING_RANGE, CORNER_RADIUS_MAX, FONT_SIZE_RANGE, LINE_HEIGHT_RANGE, STROKE_WIDTH_MAX } from '../engine/numbers'
 import { unitToPx } from '../engine/units'
+import { t } from '../strings'
 import { CANVAS_SIDE_PX, CORNER_RADIUS, FONT_SIZE, LETTER_SPACING, LINE_HEIGHT, LINE_WIDTH, STROKE_WIDTH, canvasSideRange, capLimit, clampTo, rangeHint } from './limits'
 
 describe('toolbar limits', () => {
@@ -39,9 +40,9 @@ describe('toolbar limits', () => {
   })
 
   it('read as a sentence for the tooltip and the screen reader', () => {
-    expect(rangeHint(FONT_SIZE)).toBe('Between 8 and 200')
-    expect(rangeHint(LINE_HEIGHT)).toBe('Between 0.5 and 3')
-    expect(rangeHint({ ...FONT_SIZE, min: 1, max: 20000 }, 'px')).toBe('Between 1 and 20000 px')
+    expect(rangeHint(FONT_SIZE)).toBe(t.limits.range(8, 200))
+    expect(rangeHint(LINE_HEIGHT)).toBe(t.limits.range(0.5, 3))
+    expect(rangeHint({ ...FONT_SIZE, min: 1, max: 20000 }, 'px')).toBe(t.limits.range(1, 20000, 'px'))
   })
 })
 

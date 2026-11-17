@@ -60,7 +60,7 @@ export function MoveToFolderDialog({ open, count, currentFolder, onClose, onMove
   }
 
   return (
-    <Dialog open={open} onClose={onClose} title={count === 1 ? "Mover projeto" : `Mover projetos ${count}`} description={"Escolha uma pasta."} size="sm">
+    <Dialog open={open} onClose={onClose} title={count === 1 ? "Mover design" : `Mover ${count} designs`} description={"Escolha uma pasta."} size="sm">
       <div className={styles.list}>
         <button type="button" className={styles.row} disabled={currentFolder === null} onClick={() => onMove(null, "Todos os designs")}>
           <Home size={18} aria-hidden="true" />

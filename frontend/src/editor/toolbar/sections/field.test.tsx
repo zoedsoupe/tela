@@ -56,7 +56,7 @@ describe('FieldPanel', () => {
         <OverflowSections />
       </EditorProvider>,
     )
-    const toggle = screen.getByRole('switch', { name: 'Shrink to fit' })
+    const toggle = screen.getByRole('switch', { name: 'Reduzir para caber' })
     expect(toggle).toBeChecked()
     const minInput = screen.getByTestId('ed-fit-min-size')
     expect(minInput).toHaveValue(20)

@@ -182,7 +182,7 @@ describe('AnimatePanel', () => {
   it('names every tile and says it previews', async () => {
     const ctx = await open({ objects: [rectObject('a', 100, 100)] }, ['a'])
     engine = ctx.engine
-    expect(screen.getByRole('button', { name: 'Pop' })).toHaveAttribute('title', COPY.preview('Pop'))
+    expect(screen.getByRole('button', { name: 'Surgir' })).toHaveAttribute('title', COPY.preview('Surgir'))
   })
 
   describe('the page', () => {

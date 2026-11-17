@@ -46,14 +46,14 @@ export interface StorageUsage {
 export type StorageMode = 'indexeddb' | 'memory'
 
 export class LocalStorageFullError extends Error {
-  constructor(message = "Seu navegador não tem mais espaço para designs do Doory.") {
+  constructor(message = "Seu navegador está sem espaço para salvar designs no Tela.") {
     super(message)
     this.name = "LocalStorageFullError"
   }
 }
 
 export class LocalStorageError extends Error {
-  constructor(message = "Doory não conseguiu gravar no armazenamento deste navegador.", options?: { cause?: unknown }) {
+  constructor(message = "Não foi possível gravar no armazenamento deste navegador.", options?: { cause?: unknown }) {
     super(message, options)
     this.name = "LocalStorageError"
   }

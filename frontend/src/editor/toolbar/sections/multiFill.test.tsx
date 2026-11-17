@@ -22,11 +22,11 @@ it('recolors several selected SVG shapes with one fill choice', async () => {
   expect(engine.state.selection.kinds).toEqual(['shape'])
 
   render(<EditorProvider engine={engine} portalRoot={document.body}><MultiSection /></EditorProvider>)
-  await userEvent.click(screen.getByRole('button', { name: 'Fill: mixed colors' }))
+  await userEvent.click(screen.getByRole('button', { name: 'Preenchimento: cores variadas' }))
   const picker = screen.getByTestId('ed-multi-fill-popover')
-  expect(within(picker).getByText('Default colors')).toBeInTheDocument()
-  expect(within(picker).getByText('Gradients')).toBeInTheDocument()
-  await userEvent.click(within(picker).getByRole('button', { name: 'Use #7a64e0' }))
+  expect(within(picker).getByText('Cores padrão')).toBeInTheDocument()
+  expect(within(picker).getByText('Gradientes')).toBeInTheDocument()
+  await userEvent.click(within(picker).getByRole('button', { name: 'Usar #7a64e0' }))
 
   expect(group.getObjects().map((object) => object.fill)).toEqual(['#7a64e0', '#7a64e0'])
   expect(engine.state.doc.pages[0].objects[0]).toMatchObject({ objects: [{ fill: '#7a64e0' }, { fill: '#7a64e0' }] })

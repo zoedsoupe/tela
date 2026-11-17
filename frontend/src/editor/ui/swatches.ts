@@ -25,7 +25,7 @@ export function registerPalette(palette: Palette): () => void {
 
 registerPalette({
   id: 'doory',
-  label: "Porta",
+  label: "Tela",
   order: 0,
   colors: ["#2b1c17", "#7a64e0", "#c9bcff", "#ffa9b9", "#ffc9d3", "#ffe8a8", "#c4ecd9", "#ffffff"],
 })
@@ -37,7 +37,7 @@ registerPalette({
 })
 registerPalette({
   id: 'pastel',
-  label: "Pastel",
+  label: "Tons pastel",
   order: 20,
   colors: ["#fecaca", "#fed7aa", "#fef08a", "#d9f99d", "#bbf7d0", "#a5f3fc", "#bfdbfe", "#c7d2fe", "#e9d5ff", "#fbcfe8"],
 })

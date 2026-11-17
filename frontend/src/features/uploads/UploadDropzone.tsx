@@ -45,7 +45,7 @@ export function UploadDropzone({ queue, items, maxBytes }: UploadDropzoneProps) 
           <ImagePlus size={26} />
         </span>
         <p className={styles.title}>{"Arraste e solte imagens aqui"}</p>
-        <p className={styles.hint}>{"PNG, JPG, WebP, GIF, AVIF ou SVG · até "}{formatBytes(maxBytes)} {"each"}</p>
+        <p className={styles.hint}>{"PNG, JPG, WebP, GIF, AVIF ou SVG · até "}{formatBytes(maxBytes)} {"cada"}</p>
         <Button variant="secondary" onClick={() => input.current?.click()}>
           {"Escolha os arquivos"}</Button>
         <input ref={input} type="file" multiple accept={ACCEPT_ATTRIBUTE} className={styles.input} onChange={onChange} aria-label={"Escolha imagens para enviar"} tabIndex={-1} />
@@ -66,19 +66,19 @@ export function UploadDropzone({ queue, items, maxBytes }: UploadDropzoneProps) 
                       {item.error}
                     </p>
                   ) : item.status === 'done' ? (
-                    <p className={styles.meta}>{"Carregado · "}{formatBytes(item.size)}</p>
+                    <p className={styles.meta}>{"Enviado · "}{formatBytes(item.size)}</p>
                   ) : (
                     <progress className={styles.progress} max={100} value={Math.round(item.progress * 100)} aria-label={`Enviando ${item.name}`} />
                   )}
                 </div>
-                {item.status === 'error' ? <IconButton size="sm" label={`Tente novamente ${item.name}`} icon={<RotateCw size={16} />} onClick={() => queue.retry(item.id)} /> : null}
+                {item.status === 'error' ? <IconButton size="sm" label={`Tentar novamente ${item.name}`} icon={<RotateCw size={16} />} onClick={() => queue.retry(item.id)} /> : null}
                 <IconButton size="sm" label={item.status === 'uploading' || item.status === 'queued' ? `Cancelar ${item.name}` : `Dispensar ${item.name}`} icon={<X size={16} />} onClick={() => queue.remove(item.id)} />
               </li>
             ))}
           </ul>
           {finished.length > 1 ? (
             <Button variant="ghost" size="sm" onClick={() => queue.clearFinished()}>
-              {"Limpar concluído"}</Button>
+              {"Limpar envios concluídos"}</Button>
           ) : null}
         </div>
       ) : null}

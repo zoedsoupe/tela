@@ -26,7 +26,7 @@ export interface BrandKitEditorProps {
 
 export function BrandKitEditor({ kit, busy, error, onClose, onSave }: BrandKitEditorProps) {
   return (
-    <Dialog open={kit !== undefined} onClose={onClose} title={kit ? "Editar kit de marca" : "Kit da nova marca"} description={"Cores, fontes e logotipos que você pode reutilizar em todos os designs."} size="lg">
+    <Dialog open={kit !== undefined} onClose={onClose} title={kit ? "Editar kit de marca" : "Novo kit de marca"} description={"Cores, fontes e logotipos que você pode reutilizar em todos os designs."} size="lg">
       {kit !== undefined ? <EditorForm key={kit?.id ?? 'new'} kit={kit} busy={busy} error={error} onClose={onClose} onSave={onSave} /> : null}
     </Dialog>
   )
@@ -82,7 +82,7 @@ function EditorForm({ kit, busy, error, onClose, onSave }: { kit: BrandKit | nul
   const families = new Set((fontList.data ?? []).map((font) => font.family))
   for (const family of uploaded) families.add(family)
   for (const font of fonts) families.add(font.family)
-  const fontOptions = [{ value: '', label: "Padrão" }, ...[...families].sort((a, b) => a.localeCompare(b)).map((family) => ({ value: family, label: uploaded.has(family) ? `${family} (carregado)` : family }))]
+  const fontOptions = [{ value: '', label: "Padrão" }, ...[...families].sort((a, b) => a.localeCompare(b)).map((family) => ({ value: family, label: uploaded.has(family) ? `${family} (enviada)` : family }))]
   const fontFor = (role: BrandFont['role']) => fonts.find((font) => font.role === role)?.family ?? ''
 
   const nameError = name.trim() ? undefined : "Dê um nome ao seu kit."
@@ -142,7 +142,7 @@ function EditorForm({ kit, busy, error, onClose, onSave }: { kit: BrandKit | nul
         {assets.isPending ? (
           <Skeleton height="5rem" />
         ) : libraryWithSelected.length === 0 ? (
-          <p className={styles.hint}>{"Faça upload de imagens na página Uploads e escolha seus logotipos aqui."}</p>
+          <p className={styles.hint}>{"Envie imagens pela página Envios e escolha seus logotipos aqui."}</p>
         ) : (
           <ul className={styles.logos}>
             {libraryWithSelected.map((asset) => (

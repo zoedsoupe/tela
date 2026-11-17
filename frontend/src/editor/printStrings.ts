@@ -16,7 +16,7 @@ export const print = {
   sheet: (width: string, height: string, unit: string, extras: string) => `Cada página mede ${width} × ${height} ${unit}, com ${extras}.`,
   sheetMixed: (extras: string) => `Cada página aumenta para incluir ${extras}.`,
   extras: { both: "sangria e marcas de corte", bleed: 'sangria', marks: "marcas de corte" },
-  colour: "Os núcleos são exportados em RGB, como aparecem na tela. Não há conversão para CMYK.",
+  colour: "As cores são exportadas em RGB, como aparecem na tela. Não há conversão para CMYK.",
   engineClient: "Gerado no navegador: cada página é uma imagem de 300 dpi e o texto não pode ser selecionado.",
   preview: "Esquema ilustrativo, fora de escala",
   previewAlt: (bleed: string, marks: boolean) => `Página${bleed ? ` com sangria de ${bleed}` : ''}${marks ? ' e marcas de corte' : ''}`,

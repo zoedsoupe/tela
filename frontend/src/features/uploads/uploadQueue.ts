@@ -23,7 +23,7 @@ export const ACCEPT_ATTRIBUTE = [...ACCEPTED_IMAGE_TYPES, ".svg"].join(',')
 export function validateUpload(file: Pick<File, 'name' | 'type' | 'size'>, maxBytes: number): string | null {
   const isSvg = file.type === "image/svg+xml" || (file.type === '' && /\.svg$/i.test(file.name))
   const allowed = isSvg || (ACCEPTED_IMAGE_TYPES as readonly string[]).includes(file.type)
-  if (!allowed) return "Somente imagens PNG, JPG, WebP, GIF, AVIF e SVG podem ser carregadas."
+  if (!allowed) return "Somente imagens PNG, JPG, WebP, GIF, AVIF e SVG podem ser enviadas."
   if (file.size === 0) return "Este arquivo está vazio."
   if (file.size > maxBytes) return `Este arquivo é ${formatBytes(file.size)}. O limite é ${formatBytes(maxBytes)}.`
   return null
@@ -114,7 +114,7 @@ export class UploadQueue {
       this.options.onUploaded?.(asset)
     } catch (error) {
       if (!(error instanceof DOMException && error.name === "AbortError")) {
-        this.patch(id, { status: 'error', error: isApiError(error) ? (error.isNetwork ? "A conexão caiu. Tente novamente." : error.message) : "O upload falhou." })
+        this.patch(id, { status: 'error', error: isApiError(error) ? (error.isNetwork ? "A conexão caiu. Tente novamente." : error.message) : "O envio falhou." })
       }
     } finally {
       this.controllers.delete(id)

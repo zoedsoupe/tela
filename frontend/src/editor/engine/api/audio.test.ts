@@ -28,8 +28,8 @@ describe('audio.add', () => {
     const track = engine.audio.add(input('Theme', { libraryId: 'theme' }))
     expect(track).toMatchObject({ name: 'Theme', kind: 'music', scope: { type: 'design' }, loop: true })
     expect(engine.state.doc.audioTracks).toHaveLength(1)
-    expect(engine.state.history.undoLabel).toBe('Add audio')
-    expect(engine.state.announcement).toBe('Added Theme')
+    expect(engine.state.history.undoLabel).toBe('Adicionar áudio')
+    expect(engine.state.announcement).toBe('Theme adicionado')
     void engine.undo()
     expect('audioTracks' in engine.state.doc).toBe(false)
   })
@@ -48,7 +48,7 @@ describe('audio.add', () => {
     for (let i = 0; i < 32; i++) expect(engine.audio.add(input(`T${i}`))).not.toBeNull()
     expect(engine.audio.add(input('one more'))).toBeNull()
     expect(engine.audio.tracks()).toHaveLength(32)
-    expect(engine.state.toasts.at(-1)?.message).toMatch(/at most 32/)
+    expect(engine.state.toasts.at(-1)?.message).toBe('Um design pode ter no máximo 32 faixas de áudio. Exclua uma antes de adicionar outra.')
   })
 
   it('does nothing in a view-only editor', () => {
@@ -78,7 +78,7 @@ describe('audio.update and friends', () => {
     expect(engine.audio.get(track.id)?.volume).toBe(1)
     void engine.undo()
     expect(engine.audio.get(track.id)?.volume).toBe(0.5)
-    expect(engine.state.history.undoLabel).toBe('Add audio')
+    expect(engine.state.history.undoLabel).toBe('Adicionar áudio')
   })
 
   it('does not write when nothing changes', () => {
@@ -102,9 +102,9 @@ describe('audio.update and friends', () => {
     const track = engine.audio.add(input('Theme')) as AudioTrack
     engine.audio.setMuted(track.id, true)
     expect(engine.audio.get(track.id)?.muted).toBe(true)
-    expect(engine.state.announcement).toBe('Theme muted')
+    expect(engine.state.announcement).toBe('Theme silenciado')
     engine.audio.setMuted(track.id, false)
-    expect(engine.state.announcement).toBe('Theme unmuted')
+    expect(engine.state.announcement).toBe('Som de Theme ativado')
     engine.audio.setScope(track.id, { type: 'page', pageId: 'p2' })
     expect(engine.audio.get(track.id)?.scope).toEqual({ type: 'page', pageId: 'p2' })
   })
@@ -124,7 +124,7 @@ describe('audio.update and friends', () => {
     expect(engine.audio.tracks().map((t) => t.id)).toEqual([b.id])
     engine.audio.remove(b.id)
     expect('audioTracks' in engine.state.doc).toBe(false)
-    expect(engine.state.history.undoLabel).toBe('Delete audio')
+    expect(engine.state.history.undoLabel).toBe('Excluir áudio')
   })
 
   it('duplicates a track next to the original, unmuted and with its own id', () => {

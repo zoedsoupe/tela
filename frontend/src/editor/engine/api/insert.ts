@@ -103,7 +103,7 @@ export class InsertApi {
     view.canvas.requestRenderAll()
     if (opts.commit !== false) this.engine.commit(pageId, { label })
     else this.engine.refreshSelection()
-    this.engine.announce(opts.announce ?? t.announce.added(label.replace(/^Add /, '')))
+    this.engine.announce(opts.announce ?? t.announce.added(label.replace(/^Adicionar /, '')))
   }
 
   /* -------------------------------------------------------------------- text */

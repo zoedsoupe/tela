@@ -59,7 +59,7 @@ export default function BrandPage() {
             setEditing(null)
           }}
         >
-          {"Kit da nova marca"}</Button>
+          {"Novo kit de marca"}</Button>
       </header>
       {atLimit ? <p className={brandStyles.limit}>{"Você atingiu o limite de "}{MAX_BRAND_KITS} {"kits da marca. Exclua um para adicionar outro."}</p> : null}
 
@@ -79,7 +79,7 @@ export default function BrandPage() {
             icon={<Palette size={28} />}
             title={"Crie seu primeiro kit de marca"}
             description={`Adicione até ${MAX_BRAND_COLORS} cores, escolha suas fontes e anexe seus logotipos. Em seguida, aplique-os no editor com um clique.`}
-            action={<Button leftIcon={<Plus size={16} />} onClick={() => { setSaveError(''); setEditing(null) }}>{"Kit da nova marca"}</Button>}
+            action={<Button leftIcon={<Plus size={16} />} onClick={() => { setSaveError(''); setEditing(null) }}>{"Novo kit de marca"}</Button>}
           />
         ) : (
           <ul className={brandStyles.grid}>

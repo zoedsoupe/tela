@@ -143,7 +143,7 @@ export function drawAnimationThumb(ctx: Surface, width: number, height: number, 
     } else {
       ctx.save()
       ctx.globalAlpha = sample.opacity
-      if (sample.blur > 0.25 && 'filter' in ctx) ctx.filter = `desfoque(${sample.blur / 3}px)`
+      if (sample.blur > 0.25 && 'filter' in ctx) ctx.filter = `blur(${sample.blur / 3}px)`
       if (sample.clip) {
         const c = sample.clip
         ctx.beginPath()

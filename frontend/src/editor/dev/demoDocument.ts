@@ -99,7 +99,7 @@ export function createAnimatedDemo(): DoryDocument {
     const star = createStar({ x: 250, y: 560 }, 120, 5, 0.45)
     star.set({ fill: "#1c1517" })
     text(c, "Anime qualquer coisa", 640, 300, 84, "#1c1517", 1000)
-    text(c, "Doory dá vida às suas páginas.", 640, 450, 36, "#6b6165", 900)
+    text(c, "Tela dá vida às suas páginas.", 640, 450, 36, "#6b6165", 900)
     c.add(disc, star)
   })
   const cards = build((c) => {

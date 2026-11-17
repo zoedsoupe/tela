@@ -78,6 +78,7 @@ beforeEach(() => {
 })
 afterEach(() => {
   vi.restoreAllMocks()
+  vi.unstubAllGlobals()
   rig?.engine.dispose()
   rig = null
   scroller.remove()
@@ -414,9 +415,12 @@ describe('a pin and its card', () => {
     const r = mount()
     const pin = await screen.findByRole('button', { name: /: A foto/ })
     const scrollIntoView = vi.spyOn(Element.prototype, 'scrollIntoView')
+    const media = vi.fn().mockReturnValue({ matches: false })
+    vi.stubGlobal('matchMedia', media)
     rects.set('page-1', { left: 100, top: 3000, width: 800, height: 600 })
     act(() => r.engine.store.setState((s) => ({ comments: { ...s.comments, reveal: { id: pin.getAttribute('data-comment-pin') as string, nonce: 1, focus: false } } })))
     await waitFor(() => expect(scrollIntoView).toHaveBeenCalledWith(expect.objectContaining({ block: 'center', inline: 'center' })))
+    expect(media).toHaveBeenCalledWith('(prefers-reduced-motion: reduce)')
     expect(pin).toHaveAttribute('data-pulse', 'true')
   })
 })

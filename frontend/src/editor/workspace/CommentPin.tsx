@@ -63,7 +63,7 @@ export const CommentPin = memo(function CommentPin({ thread, left, top, zoom, pr
     const area = scroller.current?.getBoundingClientRect()
     // A pin that is already on the screen stays where it is: the view only moves when the pin is not in it.
     if (el && !(area && isComfortablyInside(el.getBoundingClientRect(), area, 48))) {
-      const calm = window.matchMedia?.("(prefere movimento reduzido: reduzir)").matches
+      const calm = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
       el.scrollIntoView({ block: 'center', inline: 'center', behavior: calm ? 'auto' : 'smooth' })
     }
     if (reveal.focus) el?.focus({ preventScroll: true })

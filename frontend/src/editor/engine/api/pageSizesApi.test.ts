@@ -65,7 +65,7 @@ describe('PagesApi: pages of different sizes', () => {
     ])
     expect(engine.state.doc.pages[0].objects[0].left).toBe(500)
     expect(engine.state.doc.pages[1].objects[0].left).toBeCloseTo(250)
-    expect(engine.state.history.undoLabel).toBe('Resize page')
+    expect(engine.state.history.undoLabel).toBe('Redimensionar página')
     return engine.undo().then(() => {
       expect(sizes(engine)[1]).toEqual({ width: 1000, height: 1000 })
       expect(engine.state.doc.pages[1].objects[0].left).toBe(500)
@@ -78,7 +78,7 @@ describe('PagesApi: pages of different sizes', () => {
     engine.pages.resize(400, 300, 'keep')
     expect(sizes(engine)).toEqual([1, 2, 3].map(() => ({ width: 400, height: 300 })))
     expect(engine.state.doc.pages.every((p) => p.width === undefined)).toBe(true)
-    expect(engine.state.history.undoLabel).toBe('Resize design')
+    expect(engine.state.history.undoLabel).toBe('Redimensionar design')
     engine.dispose()
   })
 

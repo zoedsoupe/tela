@@ -76,14 +76,14 @@ export function drawBlurred(ctx: Surface, image: Source, x: number, y: number, w
       const t = ctx.getTransform()
       const k = Math.sqrt(Math.abs(t.a * t.d - t.b * t.c)) || 1
       const { canvas, ctx: sctx } = scratchBitmap(sw, sh)
-      sctx.filter = `desfoque(${radius / k}px)`
+      sctx.filter = `blur(${radius / k}px)`
       sctx.drawImage(image, x - ox, y - oy, w, h)
       sctx.filter = 'none'
       ctx.drawImage(canvas, 0, 0, sw, sh, ox, oy, sw, sh)
       return
     }
     const previous = ctx.filter
-    ctx.filter = `desfoque(${radius}px)`
+    ctx.filter = `blur(${radius}px)`
     ctx.drawImage(image, x, y, w, h)
     ctx.filter = previous
     return

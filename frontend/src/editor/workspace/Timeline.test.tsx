@@ -95,9 +95,9 @@ describe('Timeline', () => {
     expect(screen.getAllByRole('group').filter((g) => g.dataset.testid?.startsWith('tl-lane-'))).toHaveLength(2)
     expect(screen.queryByTestId('tl-lane-plain')).toBeNull()
     const bar = screen.getByTestId('tl-bar-a-enter')
-    expect(bar).toHaveAccessibleName(COPY.bar('Enter', 'Desaparecer', '0:00.0', '0.6 s'))
+    expect(bar).toHaveAccessibleName(COPY.bar('Entrada', 'Desaparecer', '0:00.0', '0.6 s'))
     expect(screen.getByTestId('tl-bar-a-emphasis')).toHaveAttribute('data-looping', 'true')
-    expect(screen.getByTestId('tl-bar-t-enter')).toHaveAccessibleName(COPY.bar('Enter', 'Subir', '0:00.5', '0.8 s'))
+    expect(screen.getByTestId('tl-bar-t-enter')).toHaveAccessibleName(COPY.bar('Entrada', 'Subir', '0:00.5', '0.8 s'))
   })
 
   it('lists lanes by their start', async () => {
@@ -258,7 +258,7 @@ describe('Timeline', () => {
     expect(screen.queryByTestId('tl-scroller')).toBeNull()
     const list = screen.getByRole('list', { name: COPY.list })
     expect(within(list).getAllByRole('listitem')).toHaveLength(2)
-    const chip = within(list).getByRole('button', { name: COPY.chip('Enter', 'Subir', '0:00.5', '0:01.3') })
+    const chip = within(list).getByRole('button', { name: COPY.chip('Entrada', 'Subir', '0:00.5', '0:01.3') })
     await userEvent.click(chip)
     expect(ctx.engine.state.selection.ids).toEqual(['t'])
     const scrub = screen.getByTestId('tl-scrub')

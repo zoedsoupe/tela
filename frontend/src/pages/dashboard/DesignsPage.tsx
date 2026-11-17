@@ -128,7 +128,7 @@ export default function DesignsPage({ starred = false }: { starred?: boolean }) 
     <div className={styles.page}>
       <header className={styles.header}>
         <div className={styles.heading}>
-          <nav aria-label={"Pão ralado"} className={styles.crumbs} hidden={starred}>
+          <nav aria-label={"Trilha de navegação"} className={styles.crumbs} hidden={starred}>
             <Link to="/painel/projetos">{"Todos os designs"}</Link>
             {crumbs.map((crumb, index) => (
               <span key={crumb.id}>

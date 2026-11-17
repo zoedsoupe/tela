@@ -112,11 +112,11 @@ describe('naming helpers', () => {
     expect(normaliseWeight(1200, false)).toBe(400)
   })
   it('names variants', () => {
-    expect(variantLabel(400, 'normal')).toBe('Regular')
-    expect(variantLabel(400, 'italic')).toBe('Italic')
-    expect(variantLabel(700, 'italic')).toBe('Bold Italic')
-    expect(variantLabel(300, 'normal')).toBe('Light')
-    expect(variantLabel(250, 'normal')).toBe('Light')
+    expect(variantLabel(400, 'normal')).toBe('Normal')
+    expect(variantLabel(400, 'italic')).toBe('Itálico')
+    expect(variantLabel(700, 'italic')).toBe('Negrito itálico')
+    expect(variantLabel(300, 'normal')).toBe('Leve')
+    expect(variantLabel(250, 'normal')).toBe('Leve')
   })
   it('formats sizes', () => {
     expect(formatBytes(512)).toBe('512 B')

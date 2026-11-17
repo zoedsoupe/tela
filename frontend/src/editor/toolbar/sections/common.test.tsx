@@ -24,15 +24,15 @@ function mount(locked: boolean) {
 describe('PositionPanel', () => {
   it('lets an unlocked selection be turned', () => {
     const { engine } = mount(false)
-    expect(screen.getByRole('textbox', { name: 'Rotation' })).toBeEnabled()
+    expect(screen.getByRole('textbox', { name: 'Rotação' })).toBeEnabled()
     engine.dispose()
   })
 
   it('freezes the angle of a locked selection, like the Rotate button, and releases it on unlock', () => {
     const { engine, select } = mount(true)
-    expect(screen.getByRole('textbox', { name: 'Rotation' })).toBeDisabled()
+    expect(screen.getByRole('textbox', { name: 'Rotação' })).toBeDisabled()
     act(() => select(false))
-    expect(screen.getByRole('textbox', { name: 'Rotation' })).toBeEnabled()
+    expect(screen.getByRole('textbox', { name: 'Rotação' })).toBeEnabled()
     engine.dispose()
   })
 })

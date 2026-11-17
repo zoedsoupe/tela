@@ -33,7 +33,7 @@ export default function UploadsPage() {
       <header className={styles.header}>
         <div className={styles.heading}>
           <h1 className={styles.title}>{"Envios"}</h1>
-          <p className={styles.lead}>{"Suas imagens e logotipos, prontos para serem usados ​​em qualquer design."}</p>
+          <p className={styles.lead}>{"Suas imagens e seus logotipos, prontos para usar em qualquer design."}</p>
         </div>
       </header>
 
@@ -68,12 +68,12 @@ export default function UploadsPage() {
               ))}
             </ul>
           ) : list.isError ? (
-            <EmptyState title={"Seus uploads não foram carregados"} description={errorMessage(list.error, "Verifique sua conexão e tente novamente.")} role="alert" action={<Button onClick={() => void list.refetch()}>{"Tente novamente"}</Button>} />
+            <EmptyState title={"Não foi possível carregar seus envios"} description={errorMessage(list.error, "Verifique sua conexão e tente novamente.")} role="alert" action={<Button onClick={() => void list.refetch()}>{"Tente novamente"}</Button>} />
           ) : assets.length === 0 ? (
             q || filter !== 'all' ? (
-              <EmptyState icon={<Search size={28} />} title={"Nenhum upload corresponde"} description={"Tente outra pesquisa ou filtro."} />
+              <EmptyState icon={<Search size={28} />} title={"Nenhum envio corresponde à pesquisa"} description={"Tente outra pesquisa ou filtro."} />
             ) : (
-              <EmptyState icon={<Upload size={28} />} title={"Ainda não há envios"} description={"Solte as imagens acima para construir sua biblioteca. Eles também aparecerão no painel Imagens do editor."} />
+              <EmptyState icon={<Upload size={28} />} title={"Ainda não há envios"} description={"Solte as imagens acima para montar sua biblioteca. Elas também aparecerão no painel Imagens do editor."} />
             )
           ) : (
             <ul className={uploadStyles.grid}>

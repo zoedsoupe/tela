@@ -187,22 +187,22 @@ export async function readFontInfo(buffer: ArrayBuffer): Promise<FontFileInfo> {
 }
 
 const WEIGHT_NAMES: Record<number, string> = {
-  100: 'Thin',
-  200: 'Extra Light',
-  300: 'Light',
-  400: 'Regular',
-  500: 'Medium',
-  600: 'Semi Bold',
-  700: 'Bold',
-  800: 'Extra Bold',
-  900: 'Black',
+  100: 'Fina',
+  200: 'Extra fina',
+  300: 'Leve',
+  400: 'Normal',
+  500: 'Média',
+  600: 'Seminegrito',
+  700: 'Negrito',
+  800: 'Extra negrito',
+  900: 'Preta',
 }
 
-/** "Bold", "Regular Italic", "Light Italic": how a weight and style are named in the lists. */
+/** Builds the localized weight and style label shown in the font lists. */
 export function variantLabel(weight: number, style: FontStyleName): string {
   const name = WEIGHT_NAMES[Math.min(900, Math.max(100, Math.round(weight / 100) * 100))] ?? String(weight)
   if (style !== 'italic') return name
-  return weight === 400 ? 'Italic' : `${name} Italic`
+  return weight === 400 ? 'Itálico' : `${name} itálico`
 }
 
 export function formatBytes(bytes: number): string {

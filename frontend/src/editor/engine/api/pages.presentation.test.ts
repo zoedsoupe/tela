@@ -17,7 +17,7 @@ describe('pages.setNotes', () => {
     engine.pages.setNotes(ids[1], 'Pause here')
     expect(engine.state.doc.pages[1].notes).toBe('Pause here')
     expect(engine.state.doc.pages[0].notes).toBeUndefined()
-    expect(engine.state.history.undoLabel).toBe('Edit notes')
+    expect(engine.state.history.undoLabel).toBe('Editar notas')
     void engine.undo()
     expect(engine.state.doc.pages[1].notes).toBeUndefined()
   })

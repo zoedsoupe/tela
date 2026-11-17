@@ -59,7 +59,7 @@ export function BrandFonts() {
           <h2 id="brand-fonts-title" className={styles.title}>
             {t.userFonts.manage}
           </h2>
-          <p className={styles.lead}>{"Faça upload das fontes que você tem direito de usar e escolha-as no editor e nos kits de sua marca."}</p>
+          <p className={styles.lead}>{"Envie fontes que você tem direito de usar e escolha-as no editor e nos kits de marca."}</p>
         </div>
         {items.length > 0 ? upload : null}
       </header>

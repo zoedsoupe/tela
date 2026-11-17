@@ -46,10 +46,12 @@ async function mount(mode?: 'local' | 'shared-view', doc?: DoryDocument) {
 const objectCount = (engine: EditorEngine): number => engine.state.doc.pages[0].objects.length
 
 /** The top bar measures itself; jsdom has no ResizeObserver, and a desktop-wide bar keeps File and View apart. */
+let observedBarWidth = 1400
+
 class FakeObserver {
   constructor(private readonly callback: ResizeObserverCallback) {}
   observe(): void {
-    this.callback([{ contentRect: { width: 1400 } } as ResizeObserverEntry], this as unknown as ResizeObserver)
+    this.callback([{ contentRect: { width: observedBarWidth } } as ResizeObserverEntry], this as unknown as ResizeObserver)
   }
   disconnect(): void {}
   unobserve(): void {}
@@ -58,6 +60,7 @@ class FakeObserver {
 describe('editor chrome', () => {
   let engine: EditorEngine | null = null
   beforeEach(() => {
+    observedBarWidth = 1400
     vi.stubGlobal('ResizeObserver', FakeObserver)
     vi.spyOn(HTMLCanvasElement.prototype, 'toBlob').mockImplementation((cb) => cb(new Blob(['x'], { type: 'image/webp' })))
   })
@@ -110,6 +113,20 @@ describe('editor chrome', () => {
   it('offers comments for a local design through the local adapter', async () => {
     engine = await mount('local')
     expect(screen.getByTestId('ed-end-comments')).toBeInTheDocument()
+  })
+
+  it('moves undo and redo into the hamburger menu when the bar is narrower than 360px', async () => {
+    observedBarWidth = 320
+    engine = await mount()
+
+    expect(screen.getByTestId('ed-topbar')).toHaveAttribute('data-compact', 'true')
+    expect(screen.queryByTestId('ed-undo')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('ed-redo')).not.toBeInTheDocument()
+
+    await userEvent.click(screen.getByTestId('ed-more'))
+    const menu = screen.getByRole('menu', { name: t.topbar.menu })
+    expect(within(menu).getByRole('menuitem', { name: new RegExp(`^${t.topbar.undo}`) })).toBeInTheDocument()
+    expect(within(menu).getByRole('menuitem', { name: new RegExp(`^${t.topbar.redo}`) })).toBeInTheDocument()
   })
 
   it('puts the design commands in File and View menus at the left of the bar', async () => {

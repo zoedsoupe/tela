@@ -135,6 +135,11 @@
   display: none;
 }
 
+.bar[data-compact] {
+  gap: 4px;
+  padding-inline: 4px;
+}
+
 @media (max-width: 1180px) {
   .bar:not([data-narrow]) .title {
     width: clamp(120px, 18vw, 220px);

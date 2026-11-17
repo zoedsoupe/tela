@@ -1,11 +1,14 @@
 
-import { Folder, FolderClosed, Home, LayoutTemplate, Palette, Search, Settings2, Star, Trash2, Upload } from 'lucide-react'
+import { Folder, FolderClosed, Home, LayoutTemplate, Palette, Search, Star, Trash2, Upload } from 'lucide-react'
 import { Suspense, useState, type FormEvent } from 'react'
 import { Link, NavLink, Outlet, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { useQuery } from "@tanstack/react-query"
 import { profilesApi } from "@/lib/api"
 import { useFolders } from "@/lib/api/hooks"
+import { EditorCredit } from "@/editor/EditorCredit"
 import { CreateMenu } from "./CreateMenu"
+import { ProfileButton } from "@/features/profiles/ProfileButton"
+import { ProfileDialog } from "@/features/profiles/ProfileDialog"
 import { usePageMeta } from "@/lib/usePageMeta"
 import { Input, Logo } from "@/ui"
 import styles from "./DashboardLayout.module.css"
@@ -90,6 +93,7 @@ export default function DashboardLayout() {
   const [params] = useSearchParams()
   const searchValue = location.pathname.startsWith("/projetos") ? (params.get('q') ?? '') : ''
   const profile = useQuery({ queryKey: ['profiles'], queryFn: ({ signal }) => profilesApi.list(signal) })
+  const [profileDialogOpen, setProfileDialogOpen] = useState(false)
 
   return (
     <div className={styles.shell}>
@@ -118,10 +122,7 @@ export default function DashboardLayout() {
           </Link>
           <DashboardSearch key={searchValue} initial={searchValue} />
           <div className={styles.actions}>
-            <Link to="/configuracoes" className={styles.profile} aria-label="Configurações do perfil">
-              <Settings2 size={16} aria-hidden="true" />
-              <span>{profile.data?.current_profile?.name ?? "Perfil"}</span>
-            </Link>
+            <ProfileButton profile={profile.data?.current_profile} onClick={() => setProfileDialogOpen(true)} />
             <CreateMenu />
           </div>
         </header>
@@ -138,12 +139,9 @@ export default function DashboardLayout() {
             <Outlet />
           </Suspense>
         </main>
-        <footer className={styles.credit}>
-          <a href="https://github.com/shaongitbd/doory" target="_blank" rel="noreferrer">
-            Doory by Siam, creator and maintainer of Doory, https://github.com/shaongitbd/doory
-          </a>
-        </footer>
+        <EditorCredit />
       </div>
+      <ProfileDialog open={profileDialogOpen} onClose={() => setProfileDialogOpen(false)} />
     </div>
   )
 }

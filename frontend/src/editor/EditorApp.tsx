@@ -31,6 +31,7 @@ import { Toaster } from "./ui/Toaster"
 import { PageStrip } from "./workspace/PageStrip"
 import { LazyTimelineHost } from "./workspace/TimelineLoader"
 import { Workspace } from "./workspace/Workspace"
+import { EditorCredit } from "./EditorCredit"
 import styles from "./EditorApp.module.css"
 
 function LiveRegion() {
@@ -149,6 +150,7 @@ export const EditorApp = forwardRef<EditorHandle, EditorAppProps>(function Edito
         <Toaster />
         <LiveRegion />
       </EditorProvider>
+      <EditorCredit />
     </div>
   )
 })

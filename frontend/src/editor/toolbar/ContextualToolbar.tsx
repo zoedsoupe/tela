@@ -45,20 +45,28 @@ export function ContextualToolbar() {
   const shown = state.ui.cropping ? applicable.filter((s) => s.id === 'crop') : applicable
   const key = shown.map((s) => s.id).join(' ')
   const edges = useOverflow(scroller, key)
+  useEffect(() => {
+    const el = scroller.current
+    if (!el) return undefined
+    const onWheel = (event: WheelEvent): void => {
+      if (Math.abs(event.deltaY) <= Math.abs(event.deltaX)) return
+      event.preventDefault()
+      el.scrollLeft += event.deltaY
+    }
+    el.addEventListener('wheel', onWheel, { passive: false })
+    return () => el.removeEventListener('wheel', onWheel)
+  }, [key])
   if (state.readOnly || shown.length === 0) return null
   const scrollBy = (direction: 1 | -1): void => {
     const el = scroller.current
-    if (el) el.scrollLeft += direction * el.clientWidth * 0.7
+    if (el) el.scrollBy({ left: direction * el.clientWidth * 0.7, behavior: 'smooth' })
   }
   return (
     <div className={ed.strip} data-testid="ed-context-strip" data-kind={state.selection.kinds.join(' ') || 'page'}>
       <div
         ref={scroller}
         className={ed.stripInner}
-        onWheel={(e) => {
-          // A plain mouse wheel only scrolls vertically: turn it sideways here, where there is nothing to scroll up or down.
-          if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) e.currentTarget.scrollLeft += e.deltaY
-        }}
+        data-testid="ed-context-scroll"
       >
         <Toolbar label={t.toolbar.label} className={ed.row}>
           {shown.map((s, i) => {

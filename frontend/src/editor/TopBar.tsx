@@ -31,6 +31,7 @@ interface TopBarProps {
 
 /** Below this bar width File and View become one menu and the title moves into the left-hand group. */
 const NARROW_BAR = 760
+const COMPACT_BAR = 360
 
 function TitleField({ onTitle }: { onTitle: (title: string) => void }) {
   const editor = useEditor()
@@ -262,6 +263,7 @@ export function TopBar({ start, end, onTitle, onPresent }: TopBarProps) {
   const barRef = useRef<HTMLElement>(null)
   const barWidth = useWidth(barRef)
   const narrow = barWidth > 0 && barWidth < NARROW_BAR
+  const compact = barWidth > 0 && barWidth < COMPACT_BAR
 
   const endTools = visible.filter((p) => p.slot === 'end' && (!readOnly || p.readOnly))
 
@@ -313,33 +315,42 @@ export function TopBar({ start, end, onTitle, onPresent }: TopBarProps) {
     cmd("file.shortcuts"),
   ]
   /** Phone widths: one menu with a heading per group, and Comments joins it so the bar keeps room for the title. */
-  const combinedItems: MenuItem[] = [
+  const phoneTools: MenuItem[] = [
     ...endTools.map((p) => ({ id: `tool-${p.id}`, label: p.label, icon: p.icon, checked: openId === p.id || undefined, onSelect: () => toggle(p.id) })),
     ...(endTools.length > 0 ? [{ id: 'c0', separator: true }] : []),
+  ]
+  const menuGroups: MenuItem[] = [
     { id: 'h-file', label: t.topbar.file, heading: true },
     ...fileItems,
     { id: 'c1', separator: true },
     { id: 'h-view', label: t.topbar.view, heading: true },
     ...viewItems,
   ]
+  const historyItems: MenuItem[] = readOnly ? [] : [
+    { id: 'undo', label: t.topbar.undo, shortcut: 'Mod+Z', icon: I.undo, disabled: !history.canUndo, onSelect: () => void editor.undo() },
+    { id: 'redo', label: t.topbar.redo, shortcut: 'Mod+Shift+Z', icon: I.redo, disabled: !history.canRedo, onSelect: () => void editor.redo() },
+    { id: 'c2', separator: true },
+  ]
+  const combinedItems = [...phoneTools, ...menuGroups]
+  const compactItems = [...phoneTools, ...historyItems, ...menuGroups]
 
   useEffect(() => {
     if (readOnly) editor.patchUi({ panelId: null })
   }, [readOnly, editor])
 
   return (
-    <header ref={barRef} className={styles.bar} data-testid="ed-topbar" data-narrow={narrow || undefined}>
+    <header ref={barRef} className={styles.bar} data-testid="ed-topbar" data-narrow={narrow || undefined} data-compact={compact || undefined}>
       <div className={styles.left}>
         {start}
         {narrow ? (
-          <MenuButton label={t.topbar.menu} items={combinedItems} testId="ed-more" icon={<MenuIcon size={18} aria-hidden="true" />} onOpen={() => preloadDialog('download')} />
+          <MenuButton label={t.topbar.menu} items={compact ? compactItems : combinedItems} testId="ed-more" icon={<MenuIcon size={18} aria-hidden="true" />} onOpen={() => preloadDialog('download')} />
         ) : (
           <nav className={styles.menus} aria-label={t.topbar.menus}>
             <MenuButton label={t.topbar.file} items={fileItems} testId="ed-menu-file" onOpen={() => preloadDialog('download')} />
             <MenuButton label={t.topbar.view} items={viewItems} testId="ed-menu-view" />
           </nav>
         )}
-        {readOnly ? null : (
+        {readOnly || compact ? null : (
           <span className={styles.history}>
             <Tooltip label={history.undoLabel ? `${t.topbar.undo} ${history.undoLabel.toLowerCase()}` : t.topbar.undo} shortcut="Mod+Z" disabled={!history.canUndo}>
               <button type="button" className={`${ed.btn} ${ed.iconOnly} ${ed.ghost}`} aria-label={t.topbar.undo} disabled={!history.canUndo} data-testid="ed-undo" onClick={() => void editor.undo()}>

@@ -40,19 +40,6 @@ body {
   background: var(--color-brand);
 }
 
-.harness-credit {
-  max-width: 320px;
-  color: var(--color-text-muted);
-  font-size: 9px;
-  line-height: 1.25;
-  text-decoration: none;
-}
-
-.harness-credit:hover {
-  color: var(--color-text);
-  text-decoration: underline;
-}
-
 .harness-actions {
   gap: 2px;
 }
@@ -83,19 +70,7 @@ body {
   font: 500 14px var(--font-sans);
 }
 
-@media (max-width: 900px) {
-  .harness-credit {
-    max-width: 210px;
-    font-size: 8px;
-  }
-}
-
 @media (max-width: 680px) {
-  .harness-credit {
-    max-width: 155px;
-    font-size: 7px;
-  }
-
   .harness-logo b {
     display: none;
   }

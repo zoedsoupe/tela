@@ -27,7 +27,7 @@ export default function CreatePage() {
           document: createBlankDocument(spec.width, spec.height, { unit: spec.unit, presetId: spec.presetId }),
         })
     void create.then(
-      (design) => navigate(`/design/${design.id}`, { replace: true }),
+      (design) => navigate(`/design/${design.id}`, { replace: true, state: { newDesign: true } }),
       () => {
         toast({ title: "Não foi possível criar o design", description: "Confira o tamanho e tente novamente.", variant: 'error' })
         started.current = false

@@ -60,7 +60,7 @@ function ShapeMore({ stroke }: { stroke: boolean }) {
   const opacity = Number(o.opacity ?? 1)
   return (
     <PopoverTool label={t.ctx.moreOptions} trigger={<span aria-hidden="true">⋯</span>} width={248} flush testId="ed-shape-more">
-      <div className={ed.overflow}>
+      <div className={ed.overflow} data-testid="ed-shape-more-scroll">
         <div className={ed.accordionBody} style={{ paddingTop: 8 }}>
           {stroke ? <LimitedNumber label={t.toolbar.strokeWidth} value={width} limit={STROKE_WIDTH} testId="ed-stroke-width" onChange={(w) => editor.style.setStroke({ width: w }, 'stroke-width')} /> : null}
           {kind === 'rect' ? <LimitedNumber label={t.toolbar.cornerRadius} value={radius} limit={capLimit(CORNER_RADIUS, maxRadius)} testId="ed-corner-radius" onChange={(v) => editor.style.setCornerRadius(v)} /> : null}

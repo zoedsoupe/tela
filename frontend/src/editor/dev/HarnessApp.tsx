@@ -86,9 +86,6 @@ export function Harness() {
       topBarStart={
         <div className="harness-brand">
           <span className="harness-logo"><i aria-hidden="true" /><b>Tela</b></span>
-          <a className="harness-credit" href="https://github.com/shaongitbd/doory" target="_blank" rel="noreferrer">
-            Doory by Siam, creator and maintainer of Doory, https://github.com/shaongitbd/doory
-          </a>
         </div>
       }
       topBarEnd={

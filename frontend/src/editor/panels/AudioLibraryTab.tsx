@@ -8,7 +8,7 @@ import { useMemo, useState } from 'react'
 import { useEditor, useEditorState } from "../context"
 import { useDebounced } from "../hooks/useDebounced"
 import { formatSeconds } from "../animation/timelineMath"
-import { type CatalogueEntry, type Category, type DurationBand, type LibraryKind, type Mood, catalogueStore, facetsOf, filterEntries } from "../audio/library"
+import { type CatalogueEntry, type Category, type DurationBand, type LibraryKind, type Mood, catalogueStore, facetsOf, filterEntries, supportsLocalAudioLibrary } from "../audio/library"
 import { peaksFromCatalogue } from "../audio/peaks"
 import { audioRuntime, useCatalogue, usePreview } from "../audio/runtime"
 import { t } from "../strings"
@@ -90,7 +90,8 @@ function Row({ entry, canWrite, onAdd }: { entry: CatalogueEntry; canWrite: bool
 export function AudioLibraryTab() {
   const editor = useEditor()
   const readOnly = useEditorState((s) => s.readOnly)
-  const state = useCatalogue()
+  const supported = supportsLocalAudioLibrary()
+  const state = useCatalogue(supported)
   const [kind, setKind] = useState<LibraryKind>('music')
   const [query, setQuery] = useState('')
   const [mood, setMood] = useState<Mood | null>(null)
@@ -120,6 +121,16 @@ export function AudioLibraryTab() {
   const add = (entry: CatalogueEntry, scope: 'design' | 'page'): void => {
     const target = scope === 'design' ? ({ type: 'design' } as const) : ({ type: 'page', pageId: editor.state.activePageId } as const)
     editor.audio.addFromLibrary(entry, target)
+  }
+
+  if (!supported) {
+    return (
+      <div className={styles.tab} data-testid="audio-library-unavailable">
+        <p className={styles.note} role="status">
+          {t.audio.library.oggUnsupported}
+        </p>
+      </div>
+    )
   }
 
   return (
@@ -174,7 +185,7 @@ export function AudioLibraryTab() {
                 <option value="">{t.audio.library.allGenres}</option>
                 {facets.genres.map((g) => (
                   <option key={g.value} value={g.value}>
-                    {g.value}
+                    {t.audio.library.genres[g.value] ?? g.value}
                   </option>
                 ))}
               </Select>

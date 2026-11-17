@@ -33,6 +33,12 @@ describe('readEntry', () => {
     expect(readEntry(row(), BASE)).toMatchObject({ id: 'sunrise-run', kind: 'music', mood: 'upbeat', bpm: 124, key: 'C major', url: '/media/audio/music/sunrise-run-3d0f7ef96135.ogg', loop: true, channels: 2, source: 'doory' })
   })
 
+  it('uses a safe local URL from the API manifest', () => {
+    expect(readEntry(row({ url: '/audio/music/sunrise-run.ogg' }), '/api/audio/')).toMatchObject({ url: '/audio/music/sunrise-run.ogg' })
+    expect(readEntry(row({ url: 'https://example.org/audio/music/sunrise-run.ogg' }), '/api/audio/')).toMatchObject({ url: '/api/audio/music/sunrise-run-3d0f7ef96135.ogg' })
+    expect(readEntry(row({ url: '/audio/music/../secret.ogg' }), '/api/audio/')).toMatchObject({ url: '/api/audio/music/sunrise-run-3d0f7ef96135.ogg' })
+  })
+
   it.each([
     ['a path above the folder', { file: '../secret.ogg' }],
     ['an absolute path', { file: '/etc/passwd' }],

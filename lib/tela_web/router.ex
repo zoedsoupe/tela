@@ -103,6 +103,8 @@ defmodule TelaWeb.Router do
     post "/designs/:design_id/share_links", ShareController, :create
     patch "/share_links/:id", ShareController, :update
     delete "/share_links/:id", ShareController, :delete
+
+    get "/audio/library", AudioController, :library
   end
 
   scope "/api", TelaWeb do

@@ -29,6 +29,7 @@ const music = (id: string, title: string, mood: string, genre: string, durationM
   bytes: 200_000,
   peaks: [10, 60, 100, 40, 20],
   file: `music/${id}-aaaaaaaaaaaa.ogg`,
+  url: `/audio/music/${id}-aaaaaaaaaaaa.ogg`,
   license: 'CC0-1.0',
   source: 'doory',
   ...extra,
@@ -46,6 +47,7 @@ const effect = (id: string, title: string, category: string, durationMs: number)
   bytes: 5000,
   peaks: [100, 30],
   file: `sfx/${id}-bbbbbbbbbbbb.ogg`,
+  url: `/audio/sfx/${id}-bbbbbbbbbbbb.ogg`,
   license: 'CC0-1.0',
   source: 'doory',
 })
@@ -85,7 +87,7 @@ const track = (over: Partial<AudioTrack> = {}): AudioTrack => ({
   id: 't1',
   kind: 'music',
   name: 'Theme',
-  src: '/media/audio/music/theme-aaaaaaaaaaaa.ogg',
+  src: '/audio/music/theme.ogg',
   scope: { type: 'design' },
   startMs: 0,
   durationMs: 30_000,
@@ -113,6 +115,7 @@ describe('AudioPanel', () => {
     pause = vi.spyOn(HTMLMediaElement.prototype, 'pause').mockImplementation(function (this: HTMLMediaElement) {
       this.dispatchEvent(new Event('pause'))
     })
+    vi.spyOn(HTMLMediaElement.prototype, 'canPlayType').mockReturnValue('probably')
     catalogueStore.reload()
   })
 
@@ -131,8 +134,33 @@ describe('AudioPanel', () => {
       await screen.findByTestId('audio-results')
       expect(screen.getByTestId('audio-count')).toHaveTextContent(COPY.library.count(4))
       expect(screen.getByTestId('audio-lib-sunrise-run')).toHaveTextContent('Sunrise Run')
+      expect(screen.getByRole('option', { name: 'Orquestral' })).toBeInTheDocument()
       expect(screen.queryByTestId('audio-lib-pop-small')).toBeNull()
       expect(screen.getByText(/CC0/)).toBeInTheDocument()
+    })
+
+    it('loads the local API catalogue without contacting a remote service', async () => {
+      const fetchMock = vi.fn(async (_url: RequestInfo | URL) => new Response(CATALOGUE))
+      vi.stubGlobal('fetch', fetchMock)
+      catalogueStore.reload()
+      engine = await open()
+      await screen.findByTestId('audio-results')
+
+      expect(fetchMock).toHaveBeenCalledWith('/api/audio/library', expect.objectContaining({ credentials: 'same-origin' }))
+      expect(fetchMock.mock.calls.every(([url]) => url === '/api/audio/library')).toBe(true)
+    })
+
+    it('does not request the library when the browser cannot play Ogg Opus', async () => {
+      const fetchMock = vi.fn(async (_url: RequestInfo | URL) => new Response(CATALOGUE))
+      vi.stubGlobal('fetch', fetchMock)
+      const ensure = vi.spyOn(catalogueStore, 'ensure')
+      vi.spyOn(HTMLMediaElement.prototype, 'canPlayType').mockReturnValue('')
+      engine = await open()
+      await screen.findByTestId('audio-library-unavailable')
+
+      expect(fetchMock).not.toHaveBeenCalled()
+      expect(ensure).not.toHaveBeenCalled()
+      expect(screen.getByTestId('audio-library-unavailable')).toHaveTextContent(COPY.library.oggUnsupported)
     })
 
     it('narrows by mood chip, by search words and by length, and clears everything', async () => {

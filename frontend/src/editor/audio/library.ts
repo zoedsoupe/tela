@@ -1,7 +1,7 @@
 /**
- * The audio library as the editor sees it: a static catalogue (`/media/audio/index.json`, written by
- * `manage.py sync_audio`) that is fetched once, kept for offline use, and searched, filtered and previewed entirely in
- * the browser. Nothing here calls the API while the person types.
+ * The audio library as the editor sees it: a local catalogue (`/api/audio/library`) that is fetched once, kept for
+ * offline use, and searched, filtered and previewed entirely in the browser. Nothing here calls the API while the
+ * person types.
  *
  * The catalogue is data from the server, so it is read defensively: a row that is not what it should be is left out
  * (never the whole list), text is limited in length, and a file path is only accepted when it stays inside the folder
@@ -10,7 +10,7 @@
 import { fetchCatalogueText, FetchError } from "./cache"
 import { type NewTrackInput, cleanText } from "./model"
 
-export const CATALOGUE_URL = "/media/audio/index.json"
+export const CATALOGUE_URL = "/api/audio/library"
 
 export const MOODS = ['upbeat', 'calm', 'cinematic', 'lofi', 'corporate', 'playful', 'romantic', 'dramatic'] as const
 export type Mood = (typeof MOODS)[number]
@@ -77,15 +77,24 @@ const number = (v: unknown, min: number, max: number): number | undefined => (ty
 const ID = /^[a-z0-9][a-z0-9-]{0,47}$/
 const FILE = /^[a-z0-9][a-z0-9._/-]{0,200}$/
 
+function safeFile(file: unknown): file is string {
+  return typeof file === 'string' && FILE.test(file) && !file.split('/').includes('..') && !file.includes('//')
+}
+
+function safeAudioUrl(url: unknown): url is string {
+  return typeof url === 'string' && url.startsWith('/audio/') && safeFile(url.slice('/audio/'.length))
+}
+
 /** The row as an entry, or null when it is not usable. `base` is the folder of the catalogue (ends with `/`). */
 export function readEntry(raw: unknown, base: string): CatalogueEntry | null {
   if (!isRecord(raw)) return null
   const id = typeof raw.id === 'string' && ID.test(raw.id) ? raw.id : null
   const kind = raw.kind === 'music' || raw.kind === 'sfx' ? raw.kind : null
-  const file = typeof raw.file === 'string' && FILE.test(raw.file) && !raw.file.split('/').includes('..') && !raw.file.includes('//') ? raw.file : null
+  const file = safeFile(raw.file) ? raw.file : null
+  const url = safeAudioUrl(raw.url) ? raw.url : file ? `${base}${file}` : null
   const durationMs = number(raw.durationMs, 20, 3_600_000)
   const title = text(raw.title, 80)
-  if (!id || !kind || !file || durationMs === undefined || !title) return null
+  if (!id || !kind || !url || durationMs === undefined || !title) return null
   const mood = (MOODS as readonly unknown[]).includes(raw.mood) ? (raw.mood as Mood) : undefined
   const category = (CATEGORIES as readonly unknown[]).includes(raw.category) ? (raw.category as Category) : undefined
   if (kind === 'music' ? !mood : !category) return null
@@ -102,7 +111,7 @@ export function readEntry(raw: unknown, base: string): CatalogueEntry | null {
     durationMs: Math.round(durationMs),
     bytes: Math.round(number(raw.bytes, 0, 100 * 1024 * 1024) ?? 0),
     peaks,
-    url: `${base}${file}`,
+    url,
     source: typeof raw.source === 'string' && ID.test(raw.source) ? raw.source : 'doory',
     license: text(raw.license, 40) || 'CC0-1.0',
   }
@@ -310,3 +319,14 @@ export class CatalogueStore {
 }
 
 export const catalogueStore = new CatalogueStore()
+
+/** Ogg Opus is the bundled library format; do not request the catalogue if the browser cannot play it. */
+export function supportsLocalAudioLibrary(): boolean {
+  if (typeof document === 'undefined') return false
+
+  try {
+    return document.createElement('audio').canPlayType('audio/ogg; codecs="opus"') !== ''
+  } catch {
+    return false
+  }
+}

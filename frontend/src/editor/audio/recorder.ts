@@ -81,7 +81,7 @@ export function levelFromRms(rms: number): number {
 
 const MESSAGES: Record<RecorderFailure, string> = {
   denied: "O acesso ao microfone foi bloqueado. Permita este site na barra de endereço do seu navegador e tente novamente.",
-  blocked: "Esta página não tem permissão para usar o microfone. Abra o Doory via HTTPS ou peça permissão ao administrador do site.",
+  blocked: "Esta página não tem permissão para usar o microfone. Acesse o editor via HTTPS ou peça permissão ao administrador do site.",
   'no-device': "Nenhum microfone foi encontrado. Conecte um ou verifique as configurações de som do sistema e tente novamente.",
   busy: "O microfone está sendo usado por outro aplicativo ou guia. Feche aí e tente novamente.",
   unsupported: "Este navegador não pode gravar áudio. Experimente uma versão atual do Chrome, Edge, Firefox ou Safari.",

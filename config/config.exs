@@ -5,6 +5,9 @@ config :tela,
   ecto_repos: [Tela.Repo],
   generators: [timestamp_type: :utc_datetime]
 
+# Serve the bundled Ogg Opus library with a media type browsers understand.
+config :mime, :types, %{"audio/ogg" => ["oga", "ogg"]}
+
 # Configure the endpoint
 config :tela, TelaWeb.Endpoint,
   url: [host: "localhost"],

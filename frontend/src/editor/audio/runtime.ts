@@ -91,7 +91,7 @@ export function usePreview(): PreviewState {
   return useSyncExternalStore(previewer.subscribe, previewer.getSnapshot)
 }
 
-export function useCatalogue(): CatalogueState {
-  catalogueStore.ensure()
+export function useCatalogue(enabled = true): CatalogueState {
+  if (enabled) catalogueStore.ensure()
   return useSyncExternalStore(catalogueStore.subscribe, catalogueStore.getSnapshot)
 }

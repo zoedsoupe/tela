@@ -20,3 +20,8 @@ Third-party browser libraries retain their own licenses and notices, including:
 - Bundled fonts (SIL Open Font License 1.1)
 
 The complete original Doory notices and its Attribution Assurance License are retained in licenses/.
+
+Bundled local audio library
+  Audio files under priv/static/audio and the manifest under priv/content/audio are from the Doory audio library.
+  The original works were made by Doory contributors and are dedicated to the public domain under CC0 1.0
+  (https://creativecommons.org/publicdomain/zero/1.0/). The manifest retains the release and license metadata.

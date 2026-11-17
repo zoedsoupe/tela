@@ -1,7 +1,7 @@
 /**
- * Fetching with an offline copy. The audio library is a static catalogue, so what has been used once is kept in the
- * browser's Cache Storage and served from there afterwards, online or not. Only the library's own files and catalogue
- * go in (`/media/audio/…`); everything else is an ordinary request that the browser's HTTP cache handles.
+ * Fetching with an offline copy. The audio library is a local catalogue, so what has been used once is kept in the
+ * browser's Cache Storage and served from there afterwards, online or not. Only its manifest and audio files go in;
+ * everything else is an ordinary request that the browser's HTTP cache handles.
  */
 export const CACHE_NAME = 'doory-audio-v1'
 
@@ -13,11 +13,12 @@ function cacheStorage(): CacheStorage | null {
   }
 }
 
-/** Whether `url` is one of the library's files (so it may be kept for offline use). */
+/** Whether `url` is the local manifest or one of its files (so it may be kept for offline use). */
 export function isLibraryUrl(url: string): boolean {
   try {
     const parsed = new URL(url, globalThis.location?.href ?? 'http://localhost/')
-    return parsed.origin === (globalThis.location?.origin ?? parsed.origin) && parsed.pathname.startsWith("/media/audio/")
+    return parsed.origin === (globalThis.location?.origin ?? parsed.origin) &&
+      (parsed.pathname === '/api/audio/library' || parsed.pathname.startsWith('/audio/'))
   } catch {
     return false
   }

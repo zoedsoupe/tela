@@ -164,5 +164,5 @@ function raceAbort<T>(promise: Promise<T>, signal: AbortSignal): Promise<T> {
 
 const shared = new SourceStore()
 
-/** A loader that fetches `https://` and same-site `/media/…` sources with the shared cache (no `idb://`). */
+/** A loader that fetches `https://` and same-site `/audio/` sources with the shared cache (no `idb://`). */
 export const defaultSourceLoader: SourceLoader = shared.load

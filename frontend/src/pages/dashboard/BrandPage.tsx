@@ -51,15 +51,6 @@ export default function BrandPage() {
           <h1 className={styles.title}>{"Kits de marca"}</h1>
           <p className={styles.lead}>{"Mantenha suas cores, fontes e logotipos em um só lugar e use-os em todos os designs."}</p>
         </div>
-        <Button
-          leftIcon={<Plus size={16} />}
-          disabled={atLimit}
-          onClick={() => {
-            setSaveError('')
-            setEditing(null)
-          }}
-        >
-          {"Novo kit de marca"}</Button>
       </header>
       {atLimit ? <p className={brandStyles.limit}>{"Você atingiu o limite de "}{MAX_BRAND_KITS} {"kits da marca. Exclua um para adicionar outro."}</p> : null}
 

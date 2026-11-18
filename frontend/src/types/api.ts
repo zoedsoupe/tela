@@ -92,7 +92,12 @@ export interface Asset {
   size: number
   mime: string
   tags: string[]
-  attribution: null
+  attribution: null | {
+    provider: string
+    author: string
+    author_url: string
+    source_url: string
+  }
   duration_ms?: number | null
   video?: {
     posterUrl?: string
@@ -106,6 +111,28 @@ export interface Asset {
 }
 
 export type AssetQuery = { kind?: AssetKind; q?: string; page?: number; page_size?: number }
+
+export type StockProvider = 'pixabay' | 'wikimedia' | 'pexels' | 'unsplash'
+export type StockProviderFilter = 'all' | StockProvider
+
+export interface StockPhoto {
+  external_id: string
+  provider: StockProvider
+  thumb_url: string
+  full_url: string
+  author: string | null
+  author_url?: string | null
+  source_url?: string | null
+}
+
+export interface StockProviderError {
+  provider: string
+  code: string
+}
+
+export interface StockPage extends Page<StockPhoto> {
+  errors: StockProviderError[]
+}
 
 export interface BrandColor {
   id: string

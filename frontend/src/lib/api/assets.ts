@@ -1,4 +1,4 @@
-import type { Asset, AssetKind, AssetQuery, Page } from "@/types/api"
+import type { Asset, AssetKind, AssetQuery, Page, StockPage, StockProvider, StockProviderFilter } from "@/types/api"
 import type { VideoAssetInfo } from "@/types/adapter"
 import { http } from "./client"
 
@@ -46,4 +46,24 @@ export const assetsApi = {
     return http.post<Asset>("/assets", { form, signal: options.signal, onUploadProgress: options.onProgress })
   },
   remove: (id: string) => http.delete<void>(`/assets/${encodeURIComponent(id)}`),
+  stock: {
+    search: async ({ q, provider, page }: { q: string; provider: StockProviderFilter; page: number }): Promise<StockPage> => {
+      const response = await http.get<{
+        items: StockPage['results']
+        next_page: number | null
+        errors: StockPage['errors']
+      }>("/assets/stock", { query: { q, provider, page } })
+      return {
+        count: response.items.length,
+        next: response.next_page === null ? null : String(response.next_page),
+        previous: page > 1 ? String(page - 1) : null,
+        results: response.items,
+        errors: response.errors,
+      }
+    },
+    import: async (provider: StockProvider, externalId: string): Promise<Asset> => {
+      const response = await http.post<{ asset: Asset }>("/assets/stock/import", { json: { provider, external_id: externalId } })
+      return response.asset
+    },
+  },
 }

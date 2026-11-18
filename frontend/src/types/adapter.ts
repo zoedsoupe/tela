@@ -16,6 +16,9 @@ import type {
   ShareLink,
   ShareLinkInput,
   ShareRole,
+  StockPage,
+  StockProvider,
+  StockProviderFilter,
   TemplateCategory,
   TemplateDetail,
   TemplateQuery,
@@ -87,6 +90,11 @@ export interface VideoService {
   upload(file: File, metadata: VideoAssetInfo, options?: VideoUploadOptions): Promise<AssetRef>
 }
 
+export interface StockAssetsService {
+  search(query: { q: string; provider: StockProviderFilter; page: number }): Promise<StockPage>
+  import(provider: StockProvider, externalId: string): Promise<Asset>
+}
+
 export interface CommentViewer {
   id: string
   owner: boolean
@@ -115,6 +123,7 @@ export interface EditorServices {
   assets: {
     list(q: AssetQuery): Promise<Page<Asset>>
     remove(id: string): Promise<void>
+    stock?: StockAssetsService
   }
   brand: {
     list(): Promise<BrandKit[]>

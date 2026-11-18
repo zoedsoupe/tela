@@ -95,6 +95,10 @@ export function createWorkspaceAdapter(designId: string, initialRevision: number
           return { ...found, results: found.results }
         },
         remove: (id) => assetsApi.remove(id),
+        stock: {
+          search: (query) => assetsApi.stock.search(query),
+          import: (provider, externalId) => assetsApi.stock.import(provider, externalId),
+        },
       },
       brand: {
         list: () => brandApi.list(),

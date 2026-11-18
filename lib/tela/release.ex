@@ -35,6 +35,20 @@ defmodule Tela.Release do
       )
   end
 
+  @doc "Synchronizes the reviewed remote element packs after migrations have run."
+  def sync_elements(pack_ids \\ []) when is_list(pack_ids) do
+    load_app()
+
+    case Ecto.Migrator.with_repo(
+           Tela.Repo,
+           fn _repo -> Tela.Catalog.PackSync.sync(pack_ids) end,
+           pool_size: 1
+         ) do
+      {:ok, _repo, result} -> result
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
   defp load_app do
     Application.load(@app)
   end

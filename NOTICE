@@ -10,6 +10,8 @@ The application shell displays the required Doory credit.
 
 The React editor, its document model, visual assets and browser export engines in frontend/ are adapted from Doory. Local catalog, font, template and audio content retains the attribution and license metadata distributed with its sources.
 
+Optional element packs downloaded by `mix tela.sync_elements` are pinned in `priv/content/element_packs.json`. Their upstream copyright and license notices are retained in `priv/content/NOTICE` and in the catalog metadata returned by `GET /api/elements/packs`. Brand logos are excluded by default.
+
 Third-party browser libraries retain their own licenses and notices, including:
 - Fabric.js (MIT)
 - React, React DOM and React Router (MIT)

@@ -101,9 +101,9 @@ defmodule Tela.Catalog do
   def list_packs do
     sql = """
     SELECT pack_slug, pack_name, type, count(*), license, license_url,
-           attribution, source_url
+           attribution, min(source_url)
     FROM catalog_assets
-    GROUP BY pack_slug, pack_name, type, license, license_url, attribution, source_url
+    GROUP BY pack_slug, pack_name, type, license, license_url, attribution
     ORDER BY pack_name COLLATE NOCASE, pack_slug
     """
 

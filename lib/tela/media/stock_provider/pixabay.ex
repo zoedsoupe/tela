@@ -3,23 +3,21 @@ defmodule Tela.Media.StockProvider.Pixabay do
   @behaviour Tela.Media.StockProvider
 
   alias Tela.Media.HTTPcClient
+  alias Tela.Media.StockResponseCache
 
   @base_url "https://pixabay.com/api/"
   @per_page 20
+  @image_type "all"
 
   @spec search(String.t(), pos_integer()) ::
           {:ok, %{items: [map()], next_page: pos_integer() | nil}} | {:error, term()}
   @impl true
   def search(query, page) do
+    query = String.trim(query)
+    cache_key = search_cache_key(query, page)
+
     with {:ok, api_key} <- api_key(),
-         {:ok, response} <-
-           request(%{
-             key: api_key,
-             q: query,
-             page: page,
-             per_page: @per_page,
-             image_type: "photo"
-           }),
+         {:ok, response} <- cached_request(cache_key, %{key: api_key, q: query, page: page}),
          {:ok, %{"hits" => hits} = decoded} when is_list(hits) <- decode_response(response) do
       items = Enum.flat_map(hits, &normalize/1)
       total_hits = integer_value(decoded, "totalHits", 0)
@@ -33,10 +31,11 @@ defmodule Tela.Media.StockProvider.Pixabay do
   @impl true
   def resolve(external_id) do
     with true <- numeric_id?(external_id),
+         cache_key <- resolve_cache_key(external_id),
          {:ok, api_key} <- api_key(),
-         {:ok, response} <- request(%{key: api_key, id: external_id, image_type: "photo"}),
+         {:ok, response} <- cached_request(cache_key, %{key: api_key, id: external_id}),
          {:ok, %{"hits" => [%{} = photo | _]}} <- decode_response(response),
-         {:ok, url} <- fetch_binary(photo, "largeImageURL"),
+         {:ok, url} <- first_binary(photo, ["largeImageURL", "vectorURL"]),
          {:ok, author} <- optional_binary(photo, "user") do
       {:ok, %{url: url, author: author}}
     else
@@ -48,7 +47,7 @@ defmodule Tela.Media.StockProvider.Pixabay do
   end
 
   defp normalize(%{"id" => id} = photo) do
-    with {:ok, full_url} <- fetch_binary(photo, "largeImageURL"),
+    with {:ok, full_url} <- first_binary(photo, ["largeImageURL", "vectorURL"]),
          {:ok, thumb_url} <- first_binary(photo, ["previewURL", "webformatURL"]),
          {:ok, author} <- optional_binary(photo, "user") do
       [
@@ -68,13 +67,38 @@ defmodule Tela.Media.StockProvider.Pixabay do
   defp normalize(_photo), do: []
 
   defp request(params) do
-    url = @base_url <> "?" <> URI.encode_query(params)
+    url =
+      @base_url <>
+        "?" <>
+        URI.encode_query(Map.put(params, :image_type, @image_type))
 
     case http_client().get(url, [], timeout: 10_000) do
       {:ok, %{status: status, body: body}} when status in 200..299 -> {:ok, body}
       {:ok, %{status: status}} -> {:error, {:provider_http_error, status}}
       {:error, reason} -> {:error, {:provider_request_failed, reason}}
     end
+  end
+
+  defp cached_request(cache_key, params) do
+    case StockResponseCache.fetch(:pixabay, cache_key) do
+      {:ok, response} ->
+        {:ok, response}
+
+      :miss ->
+        with {:ok, response} <- request(params),
+             :ok <- StockResponseCache.store(:pixabay, cache_key, response) do
+          {:ok, response}
+        end
+    end
+  end
+
+  defp search_cache_key(query, page) do
+    normalized_query = query |> String.trim() |> String.downcase()
+    "search:" <> URI.encode_query(%{q: normalized_query, page: page, image_type: @image_type})
+  end
+
+  defp resolve_cache_key(external_id) do
+    "resolve:" <> URI.encode_query(%{id: external_id, image_type: @image_type})
   end
 
   defp api_key do

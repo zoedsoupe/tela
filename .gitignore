@@ -51,3 +51,6 @@ npm-debug.log
 
 # Local implementation plan
 /PLAN.md
+
+.env
+.env.local

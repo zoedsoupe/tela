@@ -12,7 +12,14 @@ defmodule Tela.Media.HTTPcClient do
     http_options = [
       timeout: Keyword.get(options, :timeout, 10_000),
       connect_timeout: Keyword.get(options, :connect_timeout, 5_000),
-      ssl: [verify: :verify_peer]
+      ssl: [
+        verify: :verify_peer,
+        cacerts: :public_key.cacerts_get(),
+        server_name_indication: String.to_charlist(URI.parse(url).host),
+        customize_hostname_check: [
+          match_fun: :public_key.pkix_verify_hostname_match_fun(:https)
+        ]
+      ]
     ]
 
     case :httpc.request(:get, {String.to_charlist(url), request_headers}, http_options,

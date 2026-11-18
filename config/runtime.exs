@@ -9,6 +9,7 @@ config :tela, TelaWeb.Endpoint, http: [port: String.to_integer(System.get_env("P
 config :tela,
   pexels_api_key: System.get_env("PEXELS_API_KEY"),
   pixabay_api_key: System.get_env("PIXABAY_API_KEY"),
+  unsplash_access_key: System.get_env("UNSPLASH_ACCESS_KEY"),
   uploads_dir: System.get_env("UPLOADS_DIR", "uploads")
 
 if config_env() == :dev do

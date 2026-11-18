@@ -86,6 +86,8 @@ defmodule TelaWeb.Router do
     get "/assets", AssetController, :index
     post "/assets", AssetController, :create
     delete "/assets/:id", AssetController, :delete
+    get "/assets/stock", StockController, :search
+    post "/assets/stock/import", StockController, :import_asset
 
     get "/brand_kits", BrandController, :index
     post "/brand_kits", BrandController, :create

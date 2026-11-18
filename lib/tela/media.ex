@@ -7,11 +7,12 @@ defmodule Tela.Media do
   alias Tela.Media.MediaUpload
   alias Tela.Media.StockProvider.Pexels
   alias Tela.Media.StockProvider.Pixabay
+  alias Tela.Media.StockProvider.Unsplash
   alias Tela.Media.StockProvider.Wikimedia
   alias Tela.Media.Storage.Local
   alias Tela.Repo
 
-  @providers %{pexels: Pexels, pixabay: Pixabay, wikimedia: Wikimedia}
+  @providers %{pexels: Pexels, pixabay: Pixabay, unsplash: Unsplash, wikimedia: Wikimedia}
   @max_external_bytes 20_000_000
   @max_upload_bytes 50_000_000
   @max_poster_bytes 5_000_000
@@ -167,7 +168,7 @@ defmodule Tela.Media do
 
   def search_external(query, :all, page)
       when is_binary(query) and is_integer(page) and page > 0 do
-    providers = [:pexels, :pixabay, :wikimedia]
+    providers = available_providers()
 
     results =
       providers
@@ -211,6 +212,11 @@ defmodule Tela.Media do
 
   @spec import_external(Ecto.UUID.t() | nil, atom(), String.t()) ::
           {:ok, MediaUpload.t()} | {:error, term()}
+  def import_external(_created_by_id, :unsplash, external_id)
+      when is_binary(external_id) and external_id != "" do
+    {:error, :hotlinked_provider}
+  end
+
   def import_external(created_by_id, provider, external_id)
       when is_atom(provider) and is_binary(external_id) and external_id != "" do
     with {:ok, provider_module} <- provider_module(provider),
@@ -226,6 +232,21 @@ defmodule Tela.Media do
   end
 
   def import_external(_created_by_id, _provider, _external_id), do: {:error, :invalid_external_id}
+
+  @spec select_external(Ecto.UUID.t() | nil, atom(), String.t()) ::
+          {:ok, map()} | {:error, term()}
+  def select_external(_created_by_id, :unsplash, external_id)
+      when is_binary(external_id) and external_id != "" do
+    with {:ok, photo} <- Unsplash.select(external_id) do
+      {:ok, unsplash_asset(photo)}
+    end
+  end
+
+  def select_external(created_by_id, provider, external_id) do
+    with {:ok, upload} <- import_external(created_by_id, provider, external_id) do
+      {:ok, to_asset(upload)}
+    end
+  end
 
   @spec public_url(MediaUpload.t()) :: String.t()
   def public_url(%MediaUpload{id: id}) when is_binary(id), do: "/uploads/" <> id
@@ -243,6 +264,23 @@ defmodule Tela.Media do
     case Map.fetch(@providers, provider) do
       {:ok, module} -> {:ok, module}
       :error -> {:error, :unsupported_provider}
+    end
+  end
+
+  defp available_providers do
+    [:wikimedia]
+    |> maybe_add_provider(:pixabay, configured?(:pixabay_api_key))
+    |> maybe_add_provider(:pexels, configured?(:pexels_api_key))
+    |> maybe_add_provider(:unsplash, configured?(:unsplash_access_key))
+  end
+
+  defp maybe_add_provider(providers, _provider, false), do: providers
+  defp maybe_add_provider(providers, provider, true), do: providers ++ [provider]
+
+  defp configured?(key) do
+    case Application.get_env(:tela, key) do
+      value when is_binary(value) -> String.trim(value) != ""
+      _ -> false
     end
   end
 
@@ -304,6 +342,35 @@ defmodule Tela.Media do
     end
   end
 
+  defp unsplash_asset(photo) do
+    %{
+      id: "unsplash:" <> photo.external_id,
+      kind: "image",
+      name: "unsplash-" <> photo.external_id,
+      url: photo.url,
+      thumb_url: photo.thumb_url,
+      width: photo.width || 0,
+      height: photo.height || 0,
+      size: 0,
+      mime: "image/jpeg",
+      tags: [],
+      attribution: %{
+        provider: "unsplash",
+        author: photo.author,
+        author_url: photo.author_url,
+        source_url: photo.source_url
+      },
+      duration_ms: nil,
+      status: "ready",
+      error: nil,
+      poster_url: "",
+      audio_url: "",
+      video: nil,
+      metadata: %{},
+      created_at: DateTime.utc_now() |> DateTime.to_iso8601()
+    }
+  end
+
   defp validate_download_url(provider, url) when is_binary(url) do
     uri = URI.parse(url)
 
@@ -325,6 +392,7 @@ defmodule Tela.Media do
   end
 
   defp allowed_download_host?(:wikimedia, "upload.wikimedia.org"), do: true
+  defp allowed_download_host?(:unsplash, "images.unsplash.com"), do: true
   defp allowed_download_host?(_provider, _host), do: false
 
   defp validate_download_size(body)

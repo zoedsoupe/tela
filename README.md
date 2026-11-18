@@ -49,16 +49,41 @@ mix assets.deploy
 
 O `mix assets.deploy` compila a aplicação React, copia `frontend/dist` para `priv/static` e executa o `phx.digest`.
 
+## Catálogo ampliado de elementos
+
+Tela inclui 16 elementos locais no setup inicial. Para baixar os 17 pacotes adicionais de ícones, emoji e ilustrações (aproximadamente 27,5 mil elementos no total), execute uma vez:
+
+```sh
+mix tela.sync_elements
+```
+
+O comando é idempotente, não precisa de chave de API e não faz parte do `mix setup`. Pacotes já sincronizados são ignorados; uma execução interrompida pode ser repetida para continuar. Use `mix tela.sync_elements --list` para listar os pacotes e `--pack ID` uma ou mais vezes para sincronizar apenas alguns:
+
+```sh
+mix tela.sync_elements --pack lucide --pack noto-emoji
+```
+
+Em uma release, após as migrações, use:
+
+```sh
+bin/tela eval 'Tela.Release.sync_elements()'
+```
+
+Os SVGs, metadados de atribuição e licenças ficam no SQLite. As versões e hashes das fontes estão fixados em `priv/content/element_packs.json`; logos de marcas ficam excluídos.
+
 ## Provedores externos opcionais de imagens
 
-Os catálogos incluídos e o Wikimedia Commons não precisam de chave de API. Pexels e Pixabay podem ser configurados independentemente:
+Os catálogos incluídos e o Wikimedia Commons não precisam de chave de API. Pexels, Pixabay e Unsplash podem ser configurados independentemente:
 
 ```sh
 export PEXELS_API_KEY="..."
 export PIXABAY_API_KEY="..."
+export UNSPLASH_ACCESS_KEY="..."
 ```
 
-As URLs importadas passam por allowlists de hosts dos provedores, têm a assinatura da imagem validada e ficam em cache na biblioteca compartilhada de uploads.
+A opção `Todas` pesquisa o Wikimedia Commons e cada provedor configurado, sem exigir todas as chaves. As respostas de pesquisa e resolução do Pixabay ficam no SQLite por 24 horas, conforme exigido pela API. As URLs importadas do Pexels, Pixabay e Wikimedia passam por allowlists de hosts, têm a assinatura da imagem validada e ficam em cache na biblioteca compartilhada de uploads.
+
+Imagens do Unsplash permanecem nos URLs hotlinkados exigidos pela API. Ao escolher uma foto, Tela registra o download na API e preserva os links de atribuição da pessoa fotógrafa e do Unsplash; nenhuma cópia local é criada.
 
 ## Atribuição
 

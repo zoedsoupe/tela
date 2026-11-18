@@ -15,12 +15,10 @@ COPY config config
 
 RUN mix deps.get --only prod && mix deps.compile
 
-COPY assets/package.json assets/package-lock.json ./assets/
 COPY frontend/package.json frontend/package-lock.json ./frontend/
 
-RUN npm ci --prefix assets && npm ci --prefix frontend
+RUN npm ci --prefix frontend
 
-COPY assets assets
 COPY frontend frontend
 COPY lib lib
 COPY priv priv

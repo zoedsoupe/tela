@@ -1,4 +1,4 @@
-import { cleanup, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { ColorPicker } from './ColorPicker'
 
@@ -54,5 +54,32 @@ describe('ColorPicker', () => {
     render(<ColorPicker value="#ff0000" onChange={() => undefined} />)
 
     expect(screen.getByRole('button', { name: 'Selecionar uma cor da tela' })).toBeInTheDocument()
+  })
+
+  it('commits only the final colour after previewing a drag', () => {
+    const changes: string[] = []
+    const commits: string[] = []
+    render(<ColorPicker value="#ff0000" onChange={(color) => changes.push(color)} onCommit={(color) => commits.push(color)} />)
+    const hue = screen.getByRole('slider', { name: 'Matiz' })
+
+    fireEvent.change(hue, { target: { value: '30' } })
+    fireEvent.change(hue, { target: { value: '60' } })
+    fireEvent.change(hue, { target: { value: '90' } })
+    expect(changes).toHaveLength(3)
+    expect(commits).toEqual([])
+
+    fireEvent.pointerUp(hue)
+    expect(commits).toEqual([changes.at(-1)])
+
+    fireEvent.blur(hue)
+    expect(commits).toHaveLength(1)
+  })
+
+  it('does not commit an untouched control on blur', () => {
+    const onCommit = vi.fn()
+    render(<ColorPicker value="#ff0000" onChange={() => undefined} onCommit={onCommit} />)
+
+    fireEvent.blur(screen.getByRole('slider', { name: 'Matiz' }))
+    expect(onCommit).not.toHaveBeenCalled()
   })
 })

@@ -94,7 +94,6 @@ export class StyleApi {
   /* -------------------------------------------------------------- fill/stroke */
 
   setFill(spec: FillSpec, key = 'fill'): void {
-    if (spec.type === 'solid') this.engine.rememberColor(normalizeColor(spec.color))
     this.each((o) => {
       if (o instanceof DoryLine) {
         if (spec.type === 'solid') o.set('stroke', spec.color)
@@ -121,7 +120,6 @@ export class StyleApi {
       if (patch.color !== undefined) {
         if (patch.color === null) o.set({ stroke: null, strokeWidth: 0 })
         else {
-          this.engine.rememberColor(normalizeColor(patch.color))
           o.set({ stroke: patch.color, strokeWidth: currentWidth > 0 ? currentWidth : Math.max(2, patch.width ?? 2) })
         }
         if (isEditableSvgChild(o)) {
@@ -173,7 +171,6 @@ export class StyleApi {
   text(input: TextPatch, label: string = t.history.formatText, key?: string): void {
     const patch = sanitizeTextPatch(input)
     if (Object.keys(patch).length === 0) return
-    if (patch.fill?.type === 'solid') this.engine.rememberColor(normalizeColor(patch.fill.color))
     if (patch.fontFamily) this.engine.rememberFont(patch.fontFamily)
     const objs = this.targets().filter((o): o is IText => o instanceof IText)
     if (objs.length === 0) return

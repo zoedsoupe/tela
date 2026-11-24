@@ -10,6 +10,7 @@ import { UploadError } from "../engine/assets"
 import { createTextbox, TEXT_PRESETS } from "../engine/objects/factories"
 import { fontStack, primaryFamily } from "../engine/text/fontStack"
 import { useResolvedSrc } from "../hooks/useResolvedSrc"
+import { normalizeColor } from "../engine/colors"
 import { t } from "../strings"
 import { FontPicker } from "../toolbar/FontPicker"
 import { Button, IconButton } from "../ui/Button"
@@ -108,6 +109,7 @@ function useApplyColor(): (color: string) => void {
       if (sel.ids.length === 0) editor.pages.setBackground(editor.state.activePageId, { type: 'solid', color })
       else if (sel.kinds.every((k) => k === 'text')) editor.style.text({ fill: { type: 'solid', color } }, t.history.changeTextColor)
       else editor.style.setFill({ type: 'solid', color })
+      editor.rememberColor(normalizeColor(color))
     },
     [editor],
   )

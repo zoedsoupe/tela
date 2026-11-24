@@ -656,6 +656,7 @@ export class EditorEngine implements PageCanvasHost {
   }
 
   rememberColor(color: string): void {
+    if (this.state.recentColors[0] === color) return
     this.store.setState((s) => ({ recentColors: [color, ...s.recentColors.filter((c) => c !== color)].slice(0, 12) }))
   }
 

@@ -696,6 +696,7 @@
   max-height: 480px;
   padding: 12px 14px 14px;
   overflow-y: auto;
+  overscroll-behavior: contain;
   user-select: none;
 }
 .cpTitle {

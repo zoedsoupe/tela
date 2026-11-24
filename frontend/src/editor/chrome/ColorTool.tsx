@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState, useSyncExternalStore } from 'react'
-import { useDocument } from "../context"
+import { useDocument, useEditor } from "../context"
 import { normalizeColor } from "../engine/colors"
 import { documentColors } from "../engine/docOps"
 import { useCanvasIllustrationColors } from "../hooks/useCanvasIllustrationColors"
@@ -65,6 +65,7 @@ export function ColorTool({ label, value, onChange, allowNone, allowGradient, ri
 }
 
 function SwatchGrid({ value, onChange, allowNone, allowGradient, mixed, testId }: Pick<ColorToolProps, 'value' | 'onChange' | 'allowNone' | 'allowGradient' | 'mixed' | 'testId'>) {
+  const editor = useEditor()
   const doc = useDocument()
   const canvasColors = useCanvasIllustrationColors()
   const [showAll, setShowAll] = useState(false)
@@ -75,8 +76,9 @@ function SwatchGrid({ value, onChange, allowNone, allowGradient, mixed, testId }
   const shown = showAll ? design : design.slice(0, DESIGN_COLORS_SHOWN)
 
   const solid = (color: string, key?: string): void => onChange({ type: 'solid', color }, key)
+  const commit = (color: string): void => editor.rememberColor(normalizeColor(color))
   const swatch = (color: string, id: string): React.ReactNode => (
-    <button key={id} type="button" className={`${ed.cpSwatch} ${active === color.toLowerCase() ? ed.cpOn : ''}`} style={{ background: color, border: color.toLowerCase() === "#ffffff" ? "1px solid var(--ed-border)" : undefined }} title={color} aria-label={t.swatches.use(color)} data-testid={`${testId}-amostra`} onClick={() => solid(color)} />
+    <button key={id} type="button" className={`${ed.cpSwatch} ${active === color.toLowerCase() ? ed.cpOn : ''}`} style={{ background: color, border: color.toLowerCase() === "#ffffff" ? "1px solid var(--ed-border)" : undefined }} title={color} aria-label={t.swatches.use(color)} data-testid={`${testId}-amostra`} onClick={() => { solid(color); commit(color) }} />
   )
 
   if (view === 'custom') {
@@ -86,7 +88,7 @@ function SwatchGrid({ value, onChange, allowNone, allowGradient, mixed, testId }
           <span style={{ display: 'inline-flex', transform: "girar (90 graus)" }}>{I.chevronDown}</span>
           {t.swatches.back}
         </button>
-        {allowGradient ? <FillEditor value={value} onChange={(f) => onChange(f, 'fill-custom')} /> : <ColorPicker value={value.type === 'solid' ? value.color : '#000000'} onChange={(c) => solid(c, 'fill-custom')} />}
+        {allowGradient ? <FillEditor value={value} onChange={(f) => onChange(f, 'fill-custom')} onCommit={commit} /> : <ColorPicker value={value.type === 'solid' ? value.color : '#000000'} onChange={(c) => solid(c, 'fill-custom')} onCommit={commit} />}
       </div>
     )
   }
@@ -125,7 +127,7 @@ function SwatchGrid({ value, onChange, allowNone, allowGradient, mixed, testId }
 
       <p className={ed.cpTitle}>{t.swatches.defaults}</p>
       <div className={ed.cpGrid}>
-        {allowNone ? <button type="button" className={`${ed.cpSwatch} ${ed.cpNoFill} ${!mixed && value.type === 'solid' && isNone(value.color) ? ed.cpOn : ''}`} title={t.swatches.noFill} aria-label={t.swatches.noFill} data-testid={`${testId}-none`} onClick={() => solid('transparent')} /> : null}
+        {allowNone ? <button type="button" className={`${ed.cpSwatch} ${ed.cpNoFill} ${!mixed && value.type === 'solid' && isNone(value.color) ? ed.cpOn : ''}`} title={t.swatches.noFill} aria-label={t.swatches.noFill} data-testid={`${testId}-none`} onClick={() => { solid('transparent'); commit('transparent') }} /> : null}
         {DEFAULT_COLORS.map((c) => swatch(c, `f-${c}`))}
         <button type="button" className={`${ed.cpSwatch} ${ed.cpRainbow}`} title={t.swatches.custom} aria-label={t.swatches.custom} data-testid={`${testId}-personalizado`} onClick={() => setView('custom')} />
       </div>

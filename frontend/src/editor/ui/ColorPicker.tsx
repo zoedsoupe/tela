@@ -11,6 +11,8 @@ import styles from "./ColorPicker.module.css"
 interface ColorPickerProps {
   value: string
   onChange: (color: string) => void
+  /** Called once when a colour gesture is finished, rather than for every preview value. */
+  onCommit?: (color: string) => void
   allowAlpha?: boolean
   /** Extra swatches shown first (e.g. the colours of an element or brand kit). */
   extraSwatches?: { label: string; colors: readonly string[] }
@@ -28,9 +30,10 @@ function toHsva(value: string): Hsva {
   return rgbToHsv(rgba)
 }
 
-export function ColorPicker({ value, onChange, allowAlpha = true, extraSwatches }: ColorPickerProps) {
+export function ColorPicker({ value, onChange, onCommit, allowAlpha = true, extraSwatches }: ColorPickerProps) {
   const [hsva, setHsva] = useState<Hsva>(() => toHsva(value))
   const emitted = useRef(value)
+  const dirty = useRef(false)
   const canvasColors = useCanvasIllustrationColors()
   const docColors = useDocumentColors()
   const recent = useEditorStateShallow((s) => s.recentColors)
@@ -40,6 +43,7 @@ export function ColorPicker({ value, onChange, allowAlpha = true, extraSwatches 
   useEffect(() => {
     if (value !== emitted.current) {
       emitted.current = value
+      dirty.current = false
       setHsva((cur) => {
         const next = toHsva(value)
         // Keep the hue when the colour is achromatic so the hue slider does not jump to 0.
@@ -53,10 +57,17 @@ export function ColorPicker({ value, onChange, allowAlpha = true, extraSwatches 
       setHsva(next)
       const hex = rgbaToHex(hsvToRgb(next))
       emitted.current = hex
+      dirty.current = true
       onChange(hex)
     },
     [onChange],
   )
+
+  const commit = useCallback((): void => {
+    if (!dirty.current || !emitted.current) return
+    dirty.current = false
+    onCommit?.(emitted.current)
+  }, [onCommit])
 
   const rgb = hsvToRgb(hsva)
   const hex = rgbaToHex({ ...rgb, a: 1 })
@@ -76,7 +87,10 @@ export function ColorPicker({ value, onChange, allowAlpha = true, extraSwatches 
 
   const pick = (color: string): void => {
     const parsed = parseColor(color)
-    if (parsed) emit({ ...rgbToHsv(parsed), a: allowAlpha ? parsed.a : 1 })
+    if (parsed) {
+      emit({ ...rgbToHsv(parsed), a: allowAlpha ? parsed.a : 1 })
+      commit()
+    }
   }
 
   const eyeDropper = (): void => {
@@ -91,11 +105,11 @@ export function ColorPicker({ value, onChange, allowAlpha = true, extraSwatches 
 
   return (
     <div className={styles.picker}>
-      <SaturationArea hsva={hsva} onChange={emit} />
+      <SaturationArea hsva={hsva} onChange={emit} onCommit={commit} />
       <div className={styles.sliders}>
         <div className={styles.slidersCol}>
-          <HueSlider hue={hsva.h} onChange={(h) => emit({ ...hsva, h })} />
-          {allowAlpha ? <AlphaSlider hsva={hsva} onChange={(a) => emit({ ...hsva, a })} /> : null}
+          <HueSlider hue={hsva.h} onChange={(h) => emit({ ...hsva, h })} onCommit={commit} />
+          {allowAlpha ? <AlphaSlider hsva={hsva} onChange={(a) => emit({ ...hsva, a })} onCommit={commit} /> : null}
         </div>
         {canDrop ? (
           <button type="button" className={styles.eye} onClick={eyeDropper} aria-label={t.picker.eyedropper} title={t.picker.eyedropper}>
@@ -114,9 +128,15 @@ export function ColorPicker({ value, onChange, allowAlpha = true, extraSwatches 
             maxLength={9}
             onChange={(e) => typeHex(e.target.value)}
             onFocus={(e) => e.currentTarget.select()}
-            onBlur={() => setHexDraft(null)}
+            onBlur={() => {
+              setHexDraft(null)
+              commit()
+            }}
             onKeyDown={(e) => {
-              if (e.key === "Enter") setHexDraft(null)
+              if (e.key === "Enter") {
+                setHexDraft(null)
+                commit()
+              }
             }}
           />
         </label>
@@ -133,6 +153,7 @@ export function ColorPicker({ value, onChange, allowAlpha = true, extraSwatches 
                 emit({ ...rgbToHsv(next), h: rgbToHsv(next).s === 0 ? hsva.h : rgbToHsv(next).h })
               }}
               onFocus={(e) => e.currentTarget.select()}
+              onBlur={commit}
             />
           </label>
         ))}
@@ -145,6 +166,7 @@ export function ColorPicker({ value, onChange, allowAlpha = true, extraSwatches 
               value={Math.round(hsva.a * 100)}
               onChange={(e) => emit({ ...hsva, a: clamp01((Number.parseInt(e.target.value || '0', 10) || 0) / 100) })}
               onFocus={(e) => e.currentTarget.select()}
+              onBlur={commit}
             />
           </label>
         ) : null}
@@ -189,7 +211,7 @@ function SwatchRow({ label, colors, onPick, current }: { label: string; colors: 
 }
 
 /** Pointer-drag helper: reports the pointer position relative to the element the drag started on. */
-function dragHandler(onMove: (x: number, y: number, rect: DOMRect) => void) {
+function dragHandler(onMove: (x: number, y: number, rect: DOMRect) => void, onEnd: () => void) {
   return (e: React.PointerEvent<HTMLElement>): void => {
     const el = e.currentTarget
     el.setPointerCapture(e.pointerId)
@@ -198,14 +220,17 @@ function dragHandler(onMove: (x: number, y: number, rect: DOMRect) => void) {
     const up = (): void => {
       el.removeEventListener('pointermove', move)
       el.removeEventListener('pointerup', up)
+      el.removeEventListener('pointercancel', up)
+      onEnd()
     }
     el.addEventListener('pointermove', move)
     el.addEventListener('pointerup', up)
+    el.addEventListener('pointercancel', up)
   }
 }
 
-function SaturationArea({ hsva, onChange }: { hsva: Hsva; onChange: (h: Hsva) => void }) {
-  const onPointerDown = dragHandler((x, y, r) => onChange({ ...hsva, s: clamp01((x - r.left) / r.width), v: clamp01(1 - (y - r.top) / r.height) }))
+function SaturationArea({ hsva, onChange, onCommit }: { hsva: Hsva; onChange: (h: Hsva) => void; onCommit: () => void }) {
+  const onPointerDown = dragHandler((x, y, r) => onChange({ ...hsva, s: clamp01((x - r.left) / r.width), v: clamp01(1 - (y - r.top) / r.height) }), onCommit)
   const onKeyDown = (e: React.KeyboardEvent): void => {
     const step = e.shiftKey ? 0.1 : 0.02
     let { s, v } = hsva
@@ -223,6 +248,8 @@ function SaturationArea({ hsva, onChange }: { hsva: Hsva; onChange: (h: Hsva) =>
       style={{ background: `linear-gradient(to top, #000, transparent), linear-gradient(to right, #fff, hsl(${hsva.h} 100% 50%))` }}
       onPointerDown={onPointerDown}
       onKeyDown={onKeyDown}
+      onKeyUp={onCommit}
+      onBlur={onCommit}
       tabIndex={0}
       role="slider"
       aria-label={t.picker.area}
@@ -236,7 +263,7 @@ function SaturationArea({ hsva, onChange }: { hsva: Hsva; onChange: (h: Hsva) =>
   )
 }
 
-function HueSlider({ hue, onChange }: { hue: number; onChange: (h: number) => void }) {
+function HueSlider({ hue, onChange, onCommit }: { hue: number; onChange: (h: number) => void; onCommit: () => void }) {
   return (
     <input
       type="range"
@@ -247,11 +274,14 @@ function HueSlider({ hue, onChange }: { hue: number; onChange: (h: number) => vo
       value={Math.round(hue)}
       aria-label={t.picker.hue}
       onChange={(e) => onChange(Number(e.target.value))}
+      onPointerUp={onCommit}
+      onKeyUp={onCommit}
+      onBlur={onCommit}
     />
   )
 }
 
-function AlphaSlider({ hsva, onChange }: { hsva: Hsva; onChange: (a: number) => void }) {
+function AlphaSlider({ hsva, onChange, onCommit }: { hsva: Hsva; onChange: (a: number) => void; onCommit: () => void }) {
   const solid = rgbaToHex({ ...hsvToRgb(hsva), a: 1 })
   return (
     <div className={`${styles.alphaWrap}`}>
@@ -265,6 +295,9 @@ function AlphaSlider({ hsva, onChange }: { hsva: Hsva; onChange: (a: number) => 
         value={Math.round(hsva.a * 100)}
         aria-label={t.picker.opacity}
         onChange={(e) => onChange(Number(e.target.value) / 100)}
+        onPointerUp={onCommit}
+        onKeyUp={onCommit}
+        onBlur={onCommit}
       />
     </div>
   )

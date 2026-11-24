@@ -13,6 +13,7 @@ import styles from "./FillEditor.module.css"
 interface FillEditorProps {
   value: FillSpec
   onChange: (fill: FillSpec) => void
+  onCommit?: (color: string) => void
   /** Hide the gradient tab (strokes, text effects). */
   solidOnly?: boolean
   extraSwatches?: { label: string; colors: readonly string[] }
@@ -25,7 +26,7 @@ function modeOf(v: FillSpec): Mode {
 }
 
 /** Solid colour or linear/radial gradient with a draggable stop editor. */
-export function FillEditor({ value, onChange, solidOnly, extraSwatches }: FillEditorProps) {
+export function FillEditor({ value, onChange, onCommit, solidOnly, extraSwatches }: FillEditorProps) {
   const [selected, setSelected] = useState(0)
   const mode = modeOf(value)
 
@@ -58,7 +59,7 @@ export function FillEditor({ value, onChange, solidOnly, extraSwatches }: FillEd
         />
       )}
       {value.type === 'solid' ? (
-        <ColorPicker value={value.color} onChange={(color) => onChange({ type: 'solid', color })} extraSwatches={extraSwatches} />
+        <ColorPicker value={value.color} onChange={(color) => onChange({ type: 'solid', color })} onCommit={onCommit} extraSwatches={extraSwatches} />
       ) : (
         <GradientEditor value={value} selected={selected} onSelect={setSelected} onChange={onChange} extraSwatches={extraSwatches} />
       )}

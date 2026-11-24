@@ -113,8 +113,14 @@ export function Popover({ open, onClose, anchorRef, placement = 'bottom-start', 
   }, [anchorRef, placement, gap])
 
   useLayoutEffect(() => {
-    if (open) reposition()
-  }, [open, reposition, children])
+    if (!open) return
+    reposition()
+    const panel = panelRef.current
+    if (!panel || typeof ResizeObserver === 'undefined') return
+    const observer = new ResizeObserver(reposition)
+    observer.observe(panel)
+    return () => observer.disconnect()
+  }, [open, reposition])
 
   useEffect(() => {
     if (!open || !focusOnOpen) return
@@ -160,15 +166,20 @@ export function Popover({ open, onClose, anchorRef, placement = 'bottom-start', 
         anchorRef.current?.focus()
       }
     }
-    const onScroll = (): void => reposition()
+    const onResize = (): void => reposition()
+    const onScroll = (event: Event): void => {
+      const target = event.target
+      if (target instanceof Node && panelRef.current?.contains(target)) return
+      reposition()
+    }
     document.addEventListener('pointerdown', onDown, true)
     document.addEventListener('keydown', onKey, true)
-    window.addEventListener('resize', onScroll)
+    window.addEventListener('resize', onResize)
     window.addEventListener('scroll', onScroll, true)
     return () => {
       document.removeEventListener('pointerdown', onDown, true)
       document.removeEventListener('keydown', onKey, true)
-      window.removeEventListener('resize', onScroll)
+      window.removeEventListener('resize', onResize)
       window.removeEventListener('scroll', onScroll, true)
     }
   }, [open, onClose, anchorRef, reposition, keepOpenRefs, cover, id])

@@ -389,6 +389,8 @@ describe('EditorEngine', () => {
     await engine.insert.shape('rect')
     engine.style.setFill({ type: 'solid', color: '#00ff00' })
     expect(objectsOf(engine)[0].fill).toBe('#00ff00')
+    expect(engine.state.recentColors).toEqual([])
+    engine.rememberColor('#00ff00')
     expect(engine.state.recentColors[0]).toBe('#00ff00')
     await engine.insert.text('heading')
     const view = engine.activeView()

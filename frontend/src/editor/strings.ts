@@ -579,7 +579,7 @@ const strings = {
     downloadPages: 'Páginas',
     downloadAllPages: 'Todas as páginas',
     downloadCurrentPage: 'Página atual',
-    downloadRange: 'Selecionar páginas',
+    downloadRange: 'Intervalo de páginas',
     downloadRangeHint: 'ex.: 1-3, 5',
     downloadScale: 'Tamanho',
     downloadQuality: 'Qualidade',

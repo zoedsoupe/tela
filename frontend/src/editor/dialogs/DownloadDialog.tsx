@@ -24,6 +24,7 @@ import { LazyVideoSection } from "./VideoSectionLoader"
 import { ComparePreview, type Zoom } from "./download/ComparePreview"
 import { FormatPicker } from "./download/FormatPicker"
 import { MoreSettings } from "./download/MoreSettings"
+import { PageScope, type PageScope as PageScopeValue } from "./download/PageScope"
 import { PageThumbs } from "./download/PageThumbs"
 import { type Purpose, purposesFor } from "./download/purposes"
 import { PurposeCards } from "./download/PurposeCards"
@@ -33,7 +34,6 @@ import { usePreview } from "./download/usePreview"
 import styles from "./dialogs.module.css"
 import dl from "./download/download.module.css"
 
-type Scope = 'all' | 'current' | 'range'
 type Timestamp = 'off' | 'on'
 const STAGE_LABELS: Record<ExportStage, string> = { rendering: t.print.stage.rendering }
 const RASTER_IDS = new Set(['png', 'jpg', 'webp'])
@@ -71,7 +71,7 @@ export function DownloadDialog({ props }: { props?: Record<string, unknown> } = 
   const [options, setOptions] = useState<ExportOptions>(() => start.options)
   const [purpose, setPurpose] = useState<string | null>(start.purpose)
   const [printOptions, setPrintOptions] = useState<PrintOptions>(() => ({ bleedMm: 0, cropMarks: false }))
-  const [scope, setScope] = useState<Scope>('all')
+  const [scope, setScope] = useState<PageScopeValue>('all')
   const [range, setRange] = useState('')
   const [progress, setProgress] = useState<number | null>(null)
   const [stage, setStage] = useState<ExportStage | undefined>()
@@ -134,6 +134,19 @@ export function DownloadDialog({ props }: { props?: Record<string, unknown> } = 
   }
 
   const patch = (next: Partial<ExportOptions>): void => setOptions((current) => ({ ...current, ...next }))
+  const changeScope = (next: PageScopeValue): void => {
+    setScope(next)
+    if (next === 'current') setShown(Math.max(0, doc.pages.findIndex((page) => page.id === activePageId)))
+    if (next === 'range') {
+      const first = parsePageRange(range, total)?.[0]
+      if (first !== undefined) setShown(first - 1)
+    }
+  }
+  const changeRange = (text: string): void => {
+    setRange(text)
+    const first = parsePageRange(text, total)?.[0]
+    if (first !== undefined) setShown(first - 1)
+  }
   const pickFormat = (id: string): void => {
     setFormatId(id)
     setPurpose(null)
@@ -147,7 +160,7 @@ export function DownloadDialog({ props }: { props?: Record<string, unknown> } = 
   }
 
   const download = async (): Promise<void> => {
-    if (!format || rangeInvalid || !sizeValid) return
+    if (!format || rangeInvalid || chosenPages.length === 0 || !sizeValid) return
     setFailure(null)
     setProgress(0)
     setStage(undefined)
@@ -230,7 +243,7 @@ export function DownloadDialog({ props }: { props?: Record<string, unknown> } = 
     <Dialog title={t.dialog.downloadTitle} onClose={close} width={1080} aside={aside} footer={
       video
         ? <div ref={setFooterSlot} style={{ display: 'flex', flex: 1, alignItems: 'center', gap: "var(--espaço-2)", minWidth: 0 }} />
-        : <><p className={dl.summary} data-testid="download-summary">{summary()}</p>{busy ? <Button onClick={() => abort.current?.abort()}>{t.print.cancel}</Button> : <Button icon={<Copy size={16} />} onClick={() => void copy()}>{t.dialog.downloadCopy}</Button>}<Button variant="primary" icon={<Download size={16} />} onClick={() => void download()} disabled={busy || rangeInvalid || !format || !sizeValid}>{downloadLabel}</Button></>
+        : <><p className={dl.summary} data-testid="download-summary">{summary()}</p>{busy ? <Button onClick={() => abort.current?.abort()}>{t.print.cancel}</Button> : <Button icon={<Copy size={16} />} onClick={() => void copy()}>{t.dialog.downloadCopy}</Button>}<Button variant="primary" icon={<Download size={16} />} onClick={() => void download()} disabled={busy || rangeInvalid || chosenPages.length === 0 || !format || !sizeValid}>{downloadLabel}</Button></>
     }>
       <div className={dl.side}>
         <fieldset className={dl.plain} disabled={videoLocked}><PurposeCards purposes={purposes} value={purpose} onPick={pickPurpose} /></fieldset>
@@ -247,14 +260,8 @@ export function DownloadDialog({ props }: { props?: Record<string, unknown> } = 
         ) : null}
         {video && format ? <LazyVideoSection format={format.id as VideoFormat} pages={chosenPages} rangeInvalid={rangeInvalid} footer={footerSlot} onLockChange={setVideoLocked} /> : null}
         <div inert={videoLocked} style={videoLocked ? { opacity: 0.6 } : undefined}>
-          <MoreSettings open={moreOpen} onToggle={() => setMoreOpen((open) => !open)} summary={scope === 'all' ? t.dialog.downloadAllPages.toLowerCase() : scope === 'current' ? t.dialog.downloadCurrentPage.toLowerCase() : range || t.dialog.downloadRange.toLowerCase()}>
-            <div className={styles.field}>
-              <span>{t.dialog.downloadPages}</span>
-              <Segmented label={t.dialog.downloadPages} value={scope} onChange={setScope} options={[{ value: 'all', label: `${t.dialog.downloadAllPages} (${total})` }, { value: 'current', label: t.dialog.downloadCurrentPage }, { value: 'range', label: t.dialog.downloadRange }]} />
-              {scope === 'range' ? <input className={styles.input} value={range} placeholder={t.dialog.downloadRangeHint} aria-label={t.dialog.downloadRange} aria-invalid={rangeInvalid} onChange={(event) => setRange(event.target.value)} /> : null}
-              {rangeInvalid && range ? <small className={styles.error} role="alert">{t.dialog.downloadRangeInvalid}</small> : null}
-              {zipped ? <small className={styles.muted}>{t.dialog.downloadZip}</small> : null}
-            </div>
+          <PageScope total={total} value={scope} range={range} rangeInvalid={rangeInvalid} zipped={zipped} onChange={changeScope} onRangeChange={changeRange} />
+          <MoreSettings open={moreOpen} onToggle={() => setMoreOpen((open) => !open)} summary={(nameStyle === 'simple' ? t.dialog.downloadNamesSimple : t.dialog.downloadNamesStructured).toLowerCase()}>
             <div className={styles.field}>
               <span>{t.dialog.downloadNames}</span>
               <Segmented label={t.dialog.downloadNames} value={nameStyle} onChange={(next) => { setNameStyle(next); safeSetItem('tela-export-filenames', next) }} options={[{ value: 'simple', label: t.dialog.downloadNamesSimple }, { value: 'structured', label: t.dialog.downloadNamesStructured }]} />

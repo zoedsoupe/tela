@@ -66,4 +66,26 @@ describe('browser download dialog', () => {
     expect(within(dialog).getByTestId('download-summary')).not.toHaveTextContent(t.dialog.downloadInZip)
     expect(within(dialog).getByRole('button', { name: t.dialog.downloadButton })).toBeEnabled()
   })
+
+  it('exports a visible page range and moves the preview to its first page', async () => {
+    open(3)
+    const dialog = screen.getByRole('dialog', { name: t.dialog.downloadTitle })
+    await userEvent.click(within(dialog).getByRole('radio', { name: t.dialog.downloadRange }))
+    await userEvent.type(within(dialog).getByRole('textbox', { name: t.dialog.downloadRange }), '2-3')
+
+    expect(within(dialog).getByText(t.dialog.downloadPageOf(2, 3))).toBeInTheDocument()
+    await userEvent.click(within(dialog).getByRole('button', { name: t.dialog.downloadNFiles(2) }))
+    await waitFor(() => expect(runExport).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ pages: { kind: 'pages', pages: [2, 3] } })))
+  })
+
+  it('rejects an invalid page range without running the export', async () => {
+    open(3)
+    const dialog = screen.getByRole('dialog', { name: t.dialog.downloadTitle })
+    await userEvent.click(within(dialog).getByRole('radio', { name: t.dialog.downloadRange }))
+    await userEvent.type(within(dialog).getByRole('textbox', { name: t.dialog.downloadRange }), '9')
+
+    expect(within(dialog).getByRole('alert')).toHaveTextContent(t.dialog.downloadRangeInvalid)
+    expect(within(dialog).getByRole('button', { name: t.dialog.downloadButton })).toBeDisabled()
+    expect(runExport).not.toHaveBeenCalled()
+  })
 })

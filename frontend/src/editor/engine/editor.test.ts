@@ -1,4 +1,4 @@
-import { Ellipse, FabricImage, type IText } from 'fabric'
+import { Ellipse, FabricImage, Group, type IText } from 'fabric'
 import { createBlankDocument } from '@/lib/document'
 import { createMemoryAdapter } from '../dev/memoryAdapter'
 import { installImageStub } from '../test/imageStub'
@@ -201,6 +201,78 @@ describe('EditorEngine', () => {
       expect(after[i][0] as number).toBeCloseTo(before[i][0] as number, 3)
       expect(after[i][1] as number).toBeCloseTo(before[i][1] as number, 3)
     }
+    engine.dispose()
+  })
+
+  it('deletes a selected child of a group and restores it on undo', async () => {
+    const { engine, view } = await setup()
+    await engine.insert.shape('line')
+    await engine.insert.shape('rect')
+    engine.selectAll()
+    engine.arrange.group()
+    const group = view.canvas.getObjects()[0]
+    expect(group).toBeInstanceOf(Group)
+    if (!(group instanceof Group)) throw new Error('Expected a group')
+    const [line, rect] = group.getObjects()
+    const lineId = asDory(line).id
+    const rectId = asDory(rect).id
+    if (!lineId || !rectId) throw new Error('Expected ids for grouped objects')
+
+    engine.arrange.selectLayer(lineId)
+    engine.arrange.delete()
+
+    expect(group.getObjects()).toEqual([rect])
+    expect((objectsOf(engine)[0] as unknown as { objects: { id: string }[] }).objects.map((o) => o.id)).toEqual([rectId])
+    await engine.undo()
+    expect((objectsOf(engine)[0] as unknown as { objects: { id: string }[] }).objects.map((o) => o.id)).toEqual([lineId, rectId])
+    const restoredGroup = view.canvas.getObjects()[0]
+    expect(restoredGroup).toBeInstanceOf(Group)
+    if (!(restoredGroup instanceof Group)) throw new Error('Expected undo to restore a group')
+    expect(restoredGroup.getObjects().map((obj) => asDory(obj).id)).toEqual([lineId, rectId])
+    engine.dispose()
+  })
+
+  it('removes a group from the canvas when deleting all its selected children', async () => {
+    const { engine, view } = await setup()
+    await engine.insert.shape('line')
+    await engine.insert.shape('rect')
+    engine.selectAll()
+    engine.arrange.group()
+    const group = view.canvas.getObjects()[0]
+    expect(group).toBeInstanceOf(Group)
+    if (!(group instanceof Group)) throw new Error('Expected a group')
+    const [line, rect] = group.getObjects()
+    const lineId = asDory(line).id
+    const rectId = asDory(rect).id
+    if (!lineId || !rectId) throw new Error('Expected ids for grouped objects')
+
+    engine.arrange.selectLayer(lineId)
+    engine.arrange.selectLayer(rectId, true)
+    engine.arrange.delete()
+
+    expect(group.isEmpty()).toBe(true)
+    expect(view.canvas.getObjects()).not.toContain(group)
+    expect(objectsOf(engine)).toHaveLength(0)
+    engine.dispose()
+  })
+
+  it('deletes a selected group as a whole and restores it on undo', async () => {
+    const { engine, view } = await setup()
+    await engine.insert.shape('line')
+    await engine.insert.shape('rect')
+    engine.selectAll()
+    engine.arrange.group()
+    const group = view.canvas.getObjects()[0]
+    expect(group).toBeInstanceOf(Group)
+    if (!(group instanceof Group)) throw new Error('Expected a group')
+
+    engine.arrange.delete()
+
+    expect(view.canvas.getObjects()).toHaveLength(0)
+    expect(objectsOf(engine)).toHaveLength(0)
+    await engine.undo()
+    expect(objectsOf(engine)).toHaveLength(1)
+    expect((objectsOf(engine)[0] as unknown as { objects: { id: string }[] }).objects).toHaveLength(2)
     engine.dispose()
   })
 

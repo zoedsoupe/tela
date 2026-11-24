@@ -18,9 +18,10 @@ vi.mock('../engine/export/exporter', async (importOriginal) => ({
 
 let engine: EditorEngine | null = null
 
-function open() {
+function open(pageCount = 1) {
   const { adapter } = createMemoryAdapter()
   engine = new EditorEngine({ adapter, document: createBlankDocument(600, 400), meta: { id: 'design', title: 'Meu cartaz', mode: 'local' }, ephemeral: true })
+  for (let index = 1; index < pageCount; index += 1) engine.pages.add()
   return render(<EditorProvider engine={engine} portalRoot={document.body}><DownloadDialog /></EditorProvider>)
 }
 
@@ -54,5 +55,15 @@ describe('browser download dialog', () => {
     await userEvent.click(within(dialog).getByRole('button', { name: t.dialog.downloadButton }))
     await waitFor(() => expect(runExport).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ formatId: 'pdf' })))
     expect(downloadFiles).toHaveBeenCalledOnce()
+  })
+
+  it('presents a multipage PDF as one file, not a ZIP', async () => {
+    open(2)
+    const dialog = screen.getByRole('dialog', { name: t.dialog.downloadTitle })
+    await userEvent.click(within(dialog).getByRole('radio', { name: /PDF/ }))
+
+    expect(within(dialog).getByTestId('download-summary')).toHaveTextContent('1 PDF')
+    expect(within(dialog).getByTestId('download-summary')).not.toHaveTextContent(t.dialog.downloadInZip)
+    expect(within(dialog).getByRole('button', { name: t.dialog.downloadButton })).toBeEnabled()
   })
 })

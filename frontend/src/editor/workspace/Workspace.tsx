@@ -446,7 +446,12 @@ export function Workspace({ stripOpen, onToggleStrip }: WorkspaceProps) {
         }}
         onDrop={onDrop}
         onContextMenu={(e) => {
-          if (e.target === e.currentTarget) e.preventDefault()
+          const target = e.target
+          if (target instanceof Element) {
+            const editingHost = target.closest('[contenteditable]')
+            if (target.closest('input, textarea') || (editingHost && editingHost.getAttribute('contenteditable')?.toLowerCase() !== 'false')) return
+          }
+          e.preventDefault()
         }}
       >
         <div className={styles.content} data-workspace-bg style={{ minWidth: `máx(100%, ${layout.contentWidth}px)`, paddingTop: metrics.padding, paddingBottom: metrics.padding }}>

@@ -98,9 +98,10 @@ export function DownloadDialog({ props }: { props?: Record<string, unknown> } = 
   const size = chosen[0] ?? editor.pageSizeOf(editor.state.activePageId)
   const mixed = chosen.some((current) => !sameSize(current, size))
   const video = format?.controls.video === true
+  const pdf = format?.mime === 'application/pdf'
   const printing = format?.controls.print === true
   const files = chosen.length
-  const zipped = files > 1 && format?.mime !== "aplicação/pdf" && !video
+  const zipped = files > 1 && !pdf && !video
   const sizeText = options.size ?? `${options.scale}x`
   const typed = parseSize(sizeText, size.width, size.height)
   const sizeValid = !raster || (typed !== null && chosen.every((current) => parseSize(sizeText, current.width, current.height) !== null))
@@ -125,10 +126,10 @@ export function DownloadDialog({ props }: { props?: Record<string, unknown> } = 
     if (zipped) return zipFilename(title, naming)
     const first = chosenPages[0]
     const ctx = { document: doc, title, naming }
-    const simple = format.mime === "aplicação/pdf" || video
+    const simple = pdf || video
       ? `${sanitizeFilename(title) || 'design'}.${format.extension}`
       : pageFilename(title, format.extension, (first?.index ?? 0) + 1, chosenPages.length, total)
-    const perPageFile = format.mime !== "aplicação/pdf" && !video
+    const perPageFile = !pdf && !video
     return exportFilename(ctx, simple, format.extension, size, perPageFile ? first?.index ?? 0 : null)
   }
 
@@ -204,7 +205,7 @@ export function DownloadDialog({ props }: { props?: Record<string, unknown> } = 
   const summary = (): ReactNode => {
     if (!format) return null
     if (raster) return <><b>{t.dialog.downloadFiles(files, format.label)}</b>{zipped ? ` ${t.dialog.downloadInZip}` : ''}{pixels && !mixed ? ` · ${pixels.width} × ${pixels.height}` : ''}{totalBytes !== undefined ? <> · <b>≈ {formatBytes(totalBytes)}</b></> : null}</>
-    if (format.mime === "aplicação/pdf") return <><b>1 PDF</b> · {t.dialog.downloadPdfSummary(files, printing && (printOptions.bleedMm > 0 || printOptions.cropMarks))}</>
+    if (pdf) return <><b>1 PDF</b> · {t.dialog.downloadPdfSummary(files, printing && (printOptions.bleedMm > 0 || printOptions.cropMarks))}</>
     return <><b>{t.dialog.downloadFiles(files, format.label)}</b>{zipped ? ` ${t.dialog.downloadInZip}` : ''}</>
   }
 

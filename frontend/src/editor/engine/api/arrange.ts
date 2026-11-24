@@ -118,7 +118,23 @@ export class ArrangeApi {
       return typeof of === 'string' && gone.has(of) && !objs.includes(o)
     })
     view.canvas.discardActiveObject()
-    view.canvas.remove(...objs, ...backdrops)
+    const topLevel: FabricObject[] = []
+    const childrenByGroup = new Map<Group, FabricObject[]>()
+    for (const obj of objs) {
+      const parent = obj.parent ?? obj.group
+      if (parent instanceof Group && !(parent instanceof ActiveSelection)) {
+        const children = childrenByGroup.get(parent) ?? []
+        children.push(obj)
+        childrenByGroup.set(parent, children)
+      } else {
+        topLevel.push(obj)
+      }
+    }
+    for (const [group, children] of childrenByGroup) {
+      group.remove(...children)
+      if (group.isEmpty()) view.canvas.remove(group)
+    }
+    view.canvas.remove(...topLevel, ...backdrops)
     view.canvas.requestRenderAll()
     this.done(objs.length === 1 ? t.history.deleteLayer : t.history.deleteLayers)
     this.engine.announce(t.announce.deleted(objs.length))

@@ -87,7 +87,7 @@ export function ColorPicker({ value, onChange, allowAlpha = true, extraSwatches 
       .then((r) => pick(r.sRGBHex))
       .catch(() => undefined)
   }
-  const canDrop = typeof window !== 'undefined' && "Conta-gotas" in window
+  const canDrop = typeof window !== 'undefined' && "EyeDropper" in window
 
   return (
     <div className={styles.picker}>
@@ -220,7 +220,7 @@ function SaturationArea({ hsva, onChange }: { hsva: Hsva; onChange: (h: Hsva) =>
   return (
     <div
       className={styles.sv}
-      style={{ background: `gradiente linear (para cima, #000, transparente), gradiente linear (para a direita, #fff, hsl (${hsva.h} 100% 50%))` }}
+      style={{ background: `linear-gradient(to top, #000, transparent), linear-gradient(to right, #fff, hsl(${hsva.h} 100% 50%))` }}
       onPointerDown={onPointerDown}
       onKeyDown={onKeyDown}
       tabIndex={0}
@@ -258,7 +258,7 @@ function AlphaSlider({ hsva, onChange }: { hsva: Hsva; onChange: (a: number) => 
       <input
         type="range"
         className={`${styles.range} ${styles.alpha}`}
-        style={{ backgroundImage: `gradiente linear (para a direita, transparente, ${solid})` }}
+        style={{ backgroundImage: `linear-gradient(to right, transparent, ${solid})` }}
         min={0}
         max={100}
         step={1}

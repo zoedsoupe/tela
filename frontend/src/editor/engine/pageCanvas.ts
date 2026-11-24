@@ -100,13 +100,55 @@ export interface OverlayState {
 const EMPTY_OVERLAY: OverlayState = { guides: [], spacing: [], hover: null, rulerGuides: [] }
 
 const NUDGE_CLICK_SLOP = 6
+const DRAG_THRESHOLD_PX = 4
+const TRANSFORM_EPSILON = 0.001
 /** Breathing room between a text and its selection border, so the last glyph never pokes out of it. */
 const TEXT_PADDING = 6
+
+function clientPoint(event: TPointerEvent): { x: number; y: number } {
+  if ('clientX' in event) return { x: event.clientX, y: event.clientY }
+  const touch = event.changedTouches[0] ?? event.touches[0]
+  return { x: touch?.clientX ?? 0, y: touch?.clientY ?? 0 }
+}
+
+interface DragTransform {
+  transform: CanvasEvents['before:transform']['transform']
+  pressX: number
+  pressY: number
+  originalLeft: number
+  originalTop: number
+  dragging: boolean
+}
 
 function canDropIntoImageGrid(obj: FabricObject): obj is FabricImage {
   if (!(obj instanceof FabricImage) || kindOfLive(obj) !== 'image') return false
   const data = asDory(obj)
   return !data.gridCellId && !data.slot && !data.maskShape && data.maskRadius === undefined && !obj.clipPath
+}
+
+function transformChanged(target: FabricObject, transform: CanvasEvents['before:transform']['transform']): boolean {
+  const original = transform.original
+  const differs = (current: number, initial: number): boolean => Math.abs(current - initial) > TRANSFORM_EPSILON
+  if (
+    differs(target.left, original.left) ||
+    differs(target.top, original.top) ||
+    differs(target.scaleX, original.scaleX) ||
+    differs(target.scaleY, original.scaleY) ||
+    differs(target.skewX, original.skewX) ||
+    differs(target.skewY, original.skewY) ||
+    differs(target.angle, original.angle) ||
+    differs(target.width, transform.width) ||
+    differs(target.height, transform.height)
+  ) {
+    return true
+  }
+  const crop = target instanceof FabricImage ? target : null
+  return (
+    target.flipX !== original.flipX ||
+    target.flipY !== original.flipY ||
+    (crop !== null && differs(crop.cropX, original.cropX ?? 0)) ||
+    (crop !== null && differs(crop.cropY, original.cropY ?? 0))
+  )
 }
 
 interface GridCellPress {
@@ -161,6 +203,8 @@ export class PageCanvas {
   private cleanups: (() => void)[] = []
   /** Objects being dragged, scaled or rotated right now. */
   private gesture = new Set<string>()
+  private pressPoint: { x: number; y: number } | null = null
+  private dragTransform: DragTransform | null = null
   /** Changes from elsewhere to objects the user is busy with, merged into the user's version at their next commit. */
   private readonly deferred = new Map<string, Deferred>()
   /** Syncs of changes from elsewhere that have not finished; a local commit waits for them (see `settled`). */
@@ -626,7 +670,10 @@ export class PageCanvas {
       this.cleanups.push(() => c.off(name, handler))
     }
 
-    on("mouse:down:before", () => host.onPointerActivate(pid))
+    on("mouse:down:before", (e) => {
+      host.onPointerActivate(pid)
+      this.pressPoint = clientPoint(e.e)
+    })
 
     on("selection:created", () => {
       if (this.editingGrid && c.getActiveObject() !== this.editingGrid) this.leaveGridEditing()
@@ -647,6 +694,18 @@ export class PageCanvas {
     on("before:transform", (e) => {
       this.frames = anchorFrames(carriedPictures(e.transform.target))
       const target = e.transform.target
+      const press = this.pressPoint
+      this.dragTransform =
+        e.transform.action === 'drag' && !e.transform.corner && press
+          ? {
+              transform: e.transform,
+              pressX: press.x,
+              pressY: press.y,
+              originalLeft: e.transform.original.left,
+              originalTop: e.transform.original.top,
+              dragging: false,
+            }
+          : null
       const members = target instanceof ActiveSelection ? target.getObjects() : [target]
       this.gesture = new Set(members.map((m) => asDory(m).id ?? '').filter(Boolean))
       if (canDropIntoImageGrid(target) && this.canvas.getObjects().includes(target)) {
@@ -668,6 +727,17 @@ export class PageCanvas {
       }
     })
     on("object:moving", (e) => {
+      const drag = this.dragTransform
+      if (drag && drag.transform === e.transform && !drag.dragging) {
+        const point = clientPoint(e.e)
+        const distance = Math.hypot(point.x - drag.pressX, point.y - drag.pressY)
+        if (distance < DRAG_THRESHOLD_PX) {
+          e.target.set({ left: drag.originalLeft, top: drag.originalTop })
+          e.target.setCoords()
+          return
+        }
+        drag.dragging = true
+      }
       this.dragCache.ensure()
       this.snapMoving(e.target, e.e)
       clampSlotImage(e.target)
@@ -699,6 +769,8 @@ export class PageCanvas {
       this.gesture = new Set()
       this.frames = []
       this.snapRects = null
+      this.pressPoint = null
+      this.dragTransform = null
       const hadGridDrop = this.gridImageDrag?.target !== null && this.gridImageDrag?.target !== undefined
       this.gridImageDrag = null
       if (this.overlay.guides.length > 0 || this.overlay.spacing.length > 0) {
@@ -713,6 +785,7 @@ export class PageCanvas {
     on("object:modified", (e) => {
       if (this.suppress || asDory(e.target).isUi || this.removing.has(e.target)) return
       const target = e.target
+      if (e.transform && !transformChanged(target, e.transform)) return
       const imageDrop = this.gridImageDrag
       if (imageDrop && asDory(target).id === imageDrop.sourceId && imageDrop.target) {
         this.gridImageDrag = null

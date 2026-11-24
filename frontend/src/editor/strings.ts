@@ -283,6 +283,7 @@ const strings = {
     height: 'Altura',
     unit: 'Unidade',
     apply: 'Aplicar',
+    swapSize: 'Inverter largura e altura',
     invalid: (min: number, max: number) => `Largura e altura devem ser números entre ${min} e ${max} px.`,
     scaleHint: 'O design será dimensionado proporcionalmente para caber no novo tamanho.',
     magicHint: 'Os objetos mantêm suas posições relativas no novo tamanho.',

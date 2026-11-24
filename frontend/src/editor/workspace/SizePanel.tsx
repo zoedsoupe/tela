@@ -167,6 +167,9 @@ export function SizePanel({ close, pageId, defaultScope, showFlip = false }: Siz
       <button type="button" className={`${ed.btn} ${ed.primary} ${styles.fullWidth}`} disabled={!valid} data-testid="ed-canvas-apply" onClick={() => valid && apply(wPx, hPx)}>
         {t.canvasSize.apply}
       </button>
+      <button type="button" className={`${ed.btn} ${ed.ghost} ${styles.fullWidth}`} data-testid="ed-swap-size" onClick={() => apply(current.height, current.width)}>
+        {t.canvasSize.swapSize}
+      </button>
       <div className={styles.modes} role="group" aria-label={t.canvasSize.resizeContent} style={{ marginTop: 10 }}>
         {MODES.map((m) => (
           <button key={m.id} type="button" className={styles.modeBtn} aria-pressed={mode === m.id} onClick={() => setMode(m.id)}>

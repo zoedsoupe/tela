@@ -67,6 +67,13 @@ describe('canvas size fields (the document format’s 1-20 000 px)', () => {
     expect(ctx.resize).toHaveBeenCalledExactlyOnceWith(800, 20000, 'scale', { scope: 'all', pageId: ctx.engine.state.activePageId })
   })
 
+  it('swaps width and height to switch orientation', async () => {
+    const ctx = await setup()
+    engine = ctx.engine
+    await userEvent.click(screen.getByTestId('ed-swap-size'))
+    expect(ctx.resize).toHaveBeenCalledExactlyOnceWith(600, 800, 'scale', { scope: 'all', pageId: ctx.engine.state.activePageId })
+  })
+
   it('Enter on a value outside the limit shows the limit’s answer and applies nothing', async () => {
     const ctx = await setup()
     engine = ctx.engine

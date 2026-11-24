@@ -57,6 +57,17 @@ describe('PageSizeChip', () => {
     expect(sizes[1]).toEqual({ width: 559, height: 794 })
   })
 
+  it('swaps only the orientation of its own page', async () => {
+    const ctx = setup()
+    engine = ctx.engine
+    await userEvent.click(screen.getAllByTestId('ed-page-size')[0])
+    await userEvent.click(await screen.findByTestId('ed-swap-size'))
+
+    const sizes = ctx.engine.state.doc.pages.map((p) => ctx.engine.pageSizeOf(p.id))
+    expect(sizes[0]).toEqual({ width: 1080, height: 1920 })
+    expect(sizes[1]).toEqual({ width: 192, height: 336 })
+  })
+
   it('is plain text in a view-only link', () => {
     const ctx = setup('shared-view')
     engine = ctx.engine

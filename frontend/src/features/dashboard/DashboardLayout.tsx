@@ -1,5 +1,5 @@
 
-import { Folder, FolderClosed, Home, LayoutTemplate, Palette, Search, Star, Trash2, Upload } from 'lucide-react'
+import { Folder, FolderClosed, Home, LayoutTemplate, Palette, Search, Sparkles, Star, Trash2, Upload } from 'lucide-react'
 import { Suspense, useState, type FormEvent } from 'react'
 import { Link, NavLink, Outlet, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { useQuery } from "@tanstack/react-query"
@@ -9,6 +9,8 @@ import { EditorCredit } from "@/editor/EditorCredit"
 import { CreateMenu } from "./CreateMenu"
 import { ProfileButton } from "@/features/profiles/ProfileButton"
 import { ProfileDialog } from "@/features/profiles/ProfileDialog"
+import { useWhatsNew } from "@/features/whats-new/useWhatsNew"
+import { WhatsNewDialog } from "@/features/whats-new/WhatsNewDialog"
 import { usePageMeta } from "@/lib/usePageMeta"
 import { Input, Logo } from "@/ui"
 import styles from "./DashboardLayout.module.css"
@@ -94,6 +96,7 @@ export default function DashboardLayout() {
   const searchValue = location.pathname.startsWith("/projetos") ? (params.get('q') ?? '') : ''
   const profile = useQuery({ queryKey: ['profiles'], queryFn: ({ signal }) => profilesApi.list(signal) })
   const [profileDialogOpen, setProfileDialogOpen] = useState(false)
+  const whatsNew = useWhatsNew()
 
   return (
     <div className={styles.shell}>
@@ -111,6 +114,10 @@ export default function DashboardLayout() {
           </div>
           <SidebarFolders />
           <div className={`${styles.group} ${styles.foot}`}>
+            <button type="button" className={styles.link} onClick={whatsNew.reopen}>
+              <Sparkles size={18} aria-hidden="true" />
+              <span>Novidades</span>
+            </button>
             <NavLinks items={FOOT} />
           </div>
         </nav>
@@ -142,6 +149,7 @@ export default function DashboardLayout() {
         <EditorCredit />
       </div>
       <ProfileDialog open={profileDialogOpen} onClose={() => setProfileDialogOpen(false)} />
+      <WhatsNewDialog open={whatsNew.open} onClose={whatsNew.dismiss} />
     </div>
   )
 }

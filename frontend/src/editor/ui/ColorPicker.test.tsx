@@ -18,16 +18,23 @@ afterEach(() => {
 
 describe('ColorPicker', () => {
   it('uses valid gradients for saturation and alpha controls', () => {
-    const originalBackground = Object.getOwnPropertyDescriptor(CSSStyleDeclaration.prototype, 'background')
+    let target = document.createElement('div').style as object | null
+    let originalBackground: PropertyDescriptor | undefined
+    while (target && !originalBackground) {
+      originalBackground = Object.getOwnPropertyDescriptor(target, 'background')
+      if (!originalBackground) target = Object.getPrototypeOf(target) as object | null
+    }
     expect(originalBackground?.set).toBeDefined()
-    if (!originalBackground?.set) throw new Error('CSSStyleDeclaration.background setter is unavailable')
+    if (!target || !originalBackground?.set) throw new Error('CSSStyleDeclaration.background setter is unavailable')
+    const backgroundTarget = target
+    const backgroundDescriptor = originalBackground
 
     const backgroundValues: string[] = []
-    Object.defineProperty(CSSStyleDeclaration.prototype, 'background', {
-      ...originalBackground,
+    Object.defineProperty(backgroundTarget, 'background', {
+      ...backgroundDescriptor,
       set(value: string) {
         backgroundValues.push(value)
-        originalBackground.set?.call(this, value)
+        backgroundDescriptor.set?.call(this, value)
       },
     })
 
@@ -40,11 +47,11 @@ describe('ColorPicker', () => {
       )
 
       const alpha = screen.getByRole('slider', { name: 'Opacidade' })
-      expect(alpha.getAttribute('style')).toContain(
-        'linear-gradient(to right, transparent, #ff0000)',
+      expect(alpha.getAttribute('style')).toMatch(
+        /linear-gradient\(to right, transparent, (?:#ff0000|rgb\(255, 0, 0\))\)/,
       )
     } finally {
-      Object.defineProperty(CSSStyleDeclaration.prototype, 'background', originalBackground)
+      Object.defineProperty(backgroundTarget, 'background', backgroundDescriptor)
     }
   })
 

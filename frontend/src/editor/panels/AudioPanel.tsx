@@ -43,7 +43,7 @@ export function AudioPanel() {
   }
 
   const onKeyDown = (e: React.KeyboardEvent, index: number): void => {
-    let next = index
+    let next: number
     if (e.key === "ArrowRight") next = (index + 1) % TABS.length
     else if (e.key === "ArrowLeft") next = (index - 1 + TABS.length) % TABS.length
     else if (e.key === "Home") next = 0

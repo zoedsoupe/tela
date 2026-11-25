@@ -84,7 +84,7 @@ export function Menu({ items, label, at, anchorRef, onClose, className }: MenuPr
     const nodes = [...(ref.current?.querySelectorAll<HTMLElement>("[role^=\"menuitem\"]:not([aria-disabled=\"true\"])") ?? [])]
     if (nodes.length === 0) return
     const current = nodes.indexOf(document.activeElement as HTMLElement)
-    let next = 0
+    let next: number
     if (dir === 'first') next = 0
     else if (dir === 'last') next = nodes.length - 1
     else next = (current + dir + nodes.length) % nodes.length

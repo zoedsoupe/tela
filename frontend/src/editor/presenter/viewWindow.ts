@@ -12,7 +12,7 @@ const handoff = new Map<string, Window>()
 
 /** Opens (or re-uses) the presenter view window for `session`. Call it from the handler of a click or key press. */
 export function openViewWindow(session: string): Window | null {
-  let win: Window | null = null
+  let win: Window | null
   try {
     win = window.open(presenterViewUrl(session), WINDOW_NAME, FEATURES)
   } catch {

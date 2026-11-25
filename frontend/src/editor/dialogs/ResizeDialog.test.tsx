@@ -143,9 +143,9 @@ describe('Resize dialog on a design with several pages', () => {
   it('does nothing on a double click of the size the page already has, like the disabled Resize button', async () => {
     const ctx = setup(1080, 1080)
     engine = ctx.engine
-    await userEvent.dblClick(screen.getByRole('button', { name: /^Postagem no Instagram 1080 × 1080 px/, pressed: true }))
+    await userEvent.dblClick(screen.getByRole('button', { name: /^Postagem no Instagram\s*1080 × 1080 px/, pressed: true }))
     expect(ctx.resize).not.toHaveBeenCalled()
-    await userEvent.dblClick(screen.getByRole('button', { name: /^História do Instagram 1080 × 1920 px/ }))
+    await userEvent.dblClick(screen.getByRole('button', { name: /^História do Instagram\s*1080 × 1920 px/ }))
     expect(ctx.resize).toHaveBeenCalledExactlyOnceWith(1080, 1920, 'scale', { scope: 'all', pageId: ctx.engine.state.activePageId })
   })
 

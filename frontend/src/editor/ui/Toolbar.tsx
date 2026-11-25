@@ -37,7 +37,7 @@ export function Toolbar({ label, children, className, orientation = 'horizontal'
     const index = all.indexOf(target)
     if (index < 0) return
     e.preventDefault()
-    let to = index
+    let to: number
     if (e.key === next) to = (index + 1) % all.length
     else if (e.key === prev) to = (index - 1 + all.length) % all.length
     else if (e.key === "Home") to = 0

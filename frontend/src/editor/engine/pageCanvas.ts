@@ -852,7 +852,7 @@ export class PageCanvas {
         return
       }
       this.gridImageDrag = null
-      let label: string = strings.history.edit
+      let label: string
       if (target instanceof ActiveSelection) {
         const members = target.getObjects()
         const scaled = members.some((m) => isScaled(m)) || isScaled(target)

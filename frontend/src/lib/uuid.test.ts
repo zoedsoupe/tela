@@ -15,7 +15,7 @@ describe('uuid', () => {
   it('still makes version-4 UUIDs where crypto.randomUUID does not exist (plain-http pages)', () => {
     const real = globalThis.crypto
     // A page on http://192.168.x.x has `getRandomValues` but no `randomUUID`.
-    vi.stubGlobal('crypto', { getRandomValues: (a: Uint8Array) => real.getRandomValues(a) })
+    vi.stubGlobal('crypto', { getRandomValues: (a: Uint8Array<ArrayBuffer>) => real.getRandomValues(a) })
     const ids = new Set(Array.from({ length: 500 }, () => uuid()))
     expect(ids.size).toBe(500)
     for (const id of ids) expect(id).toMatch(V4)

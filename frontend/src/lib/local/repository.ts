@@ -212,8 +212,8 @@ export class LocalRepository {
   async estimateUsage(): Promise<StorageUsage> {
     const assets = await this.listAssets()
     const assetBytes = assets.reduce((sum, asset) => sum + asset.blob.size, 0)
-    let usage: number | null = null
-    let quota: number | null = null
+    let usage: number | null
+    let quota: number | null
     try {
       const estimate = await navigator.storage?.estimate?.()
       usage = estimate?.usage ?? null

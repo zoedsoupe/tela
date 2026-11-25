@@ -4,7 +4,7 @@ Tela é um editor gráfico auto-hospedado para um espaço de trabalho pessoal e 
 
 ## Executar localmente
 
-Requisitos: Elixir/OTP, Node.js 22 ou mais recente e SQLite.
+Requisitos: Elixir/OTP, Node.js 22 (a partir da 22.22.2), 24 (a partir da 24.15.0) ou 26+, e SQLite.
 
 ```sh
 mix setup

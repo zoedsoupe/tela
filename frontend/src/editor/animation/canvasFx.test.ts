@@ -27,14 +27,26 @@ describe('drawBlurred', () => {
   })
 
   it('without a canvas filter softens the picture through a smaller copy and keeps its place', () => {
-    expect(canFilter()).toBe(false)
-    const target = createCanvas(80, 60)
-    drawBlurred(context2d(target), source(), 20, 20, 20, 12, 8)
-    const d = pixels(target)
-    // Something is drawn inside the picture's rectangle and nothing outside it.
-    expect(d[(26 * 80 + 30) * 4 + 3]).toBeGreaterThan(0)
-    expect(d[(5 * 80 + 5) * 4 + 3]).toBe(0)
-    expect(d[(50 * 80 + 70) * 4 + 3]).toBe(0)
+    let proto = Object.getPrototypeOf(createCanvas(1, 1).getContext('2d')) as object | null
+    let filter: PropertyDescriptor | undefined
+    while (proto && !filter) {
+      filter = Object.getOwnPropertyDescriptor(proto, 'filter')
+      if (!filter) proto = Object.getPrototypeOf(proto) as object | null
+    }
+    if (proto && filter) delete (proto as { filter?: unknown }).filter
+    resetFilterSupport()
+    try {
+      expect(canFilter()).toBe(false)
+      const target = createCanvas(80, 60)
+      drawBlurred(context2d(target), source(), 20, 20, 20, 12, 8)
+      const d = pixels(target)
+      // Something is drawn inside the picture's rectangle and nothing outside it.
+      expect(d[(26 * 80 + 30) * 4 + 3]).toBeGreaterThan(0)
+      expect(d[(5 * 80 + 5) * 4 + 3]).toBe(0)
+      expect(d[(50 * 80 + 70) * 4 + 3]).toBe(0)
+    } finally {
+      if (proto && filter) Object.defineProperty(proto, 'filter', filter)
+    }
   })
 
   it('with a canvas filter a small picture is blurred on a bitmap of its own and lands exactly where a plain draw would put it', () => {

@@ -504,7 +504,7 @@ export function Workspace({ stripOpen, onToggleStrip }: WorkspaceProps) {
           e.preventDefault()
         }}
       >
-        <div className={styles.content} data-workspace-bg style={{ minWidth: `máx(100%, ${layout.contentWidth}px)`, paddingTop: metrics.padding, paddingBottom: metrics.padding }}>
+        <div className={styles.content} data-workspace-bg style={{ minWidth: `max(100%, ${layout.contentWidth}px)`, paddingTop: metrics.padding, paddingBottom: metrics.padding }}>
           {doc.pages.map((page, index) => {
             const slot = layout.slots[index]
             return (

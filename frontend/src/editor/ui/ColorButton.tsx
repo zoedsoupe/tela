@@ -2,6 +2,7 @@ import { type ReactNode, useRef, useState } from 'react'
 import { useEditor } from "../context"
 import { normalizeColor } from "../engine/colors"
 import { type FillSpec } from "../engine/objects/fills"
+import { useSaveColorToBrand } from "../panels/useSaveColorToBrand"
 import { fillCssPreview } from "../engine/objects/fills"
 import { FillEditor } from "./FillEditor"
 import { ColorPicker } from "./ColorPicker"
@@ -27,6 +28,7 @@ interface ColorButtonProps {
 /** Colour control: shows the current fill and opens the picker / gradient editor in a popover. */
 export function ColorButton({ label, value, onChange, solidOnly, variant = 'swatch', icon, extraSwatches, none, disabled, className }: ColorButtonProps) {
   const editor = useEditor()
+  const saveColor = useSaveColorToBrand()
   const ref = useRef<HTMLButtonElement>(null)
   const [open, setOpen] = useState(false)
   const commit = (color: string): void => editor.rememberColor(normalizeColor(color))
@@ -55,7 +57,7 @@ export function ColorButton({ label, value, onChange, solidOnly, variant = 'swat
         </button>
       </Tooltip>
       <Popover open={open} onClose={() => setOpen(false)} anchorRef={ref} label={label} placement="bottom-start">
-        {solidOnly && value.type === 'solid' ? <ColorPicker value={value.color} onChange={(color) => onChange({ type: 'solid', color })} onCommit={commit} extraSwatches={extraSwatches} /> : <FillEditor value={value} onChange={onChange} onCommit={commit} solidOnly={solidOnly} extraSwatches={extraSwatches} />}
+        {solidOnly && value.type === 'solid' ? <ColorPicker value={value.color} onChange={(color) => onChange({ type: 'solid', color })} onCommit={commit} onSaveColor={saveColor ?? undefined} extraSwatches={extraSwatches} /> : <FillEditor value={value} onChange={onChange} onCommit={commit} onSaveColor={saveColor ?? undefined} solidOnly={solidOnly} extraSwatches={extraSwatches} />}
       </Popover>
     </>
   )

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Asset, BrandKit } from '@/types/api'
-import { MAX_BRAND_COLORS, MAX_BRAND_LOGOS, emptyKit, fontOf, pickKit, refToAsset, upsertKit, withColor, withFont, withLogo, withoutColor, withoutLogo } from './brandOps'
+import { MAX_BRAND_COLORS, MAX_BRAND_LOGOS, brandColorHex, emptyKit, fontOf, pickKit, refToAsset, upsertKit, withColor, withFont, withLogo, withoutColor, withoutLogo } from './brandOps'
 
 const kit = (over: Partial<BrandKit> = {}): BrandKit => ({ ...emptyKit('Acme', false), id: 'k1', ...over })
 const logo = (id: string): Asset => ({ id, kind: 'image', name: id, url: `/media/${id}.png`, thumb_url: `/media/${id}.png`, width: 10, height: 10, size: 1, mime: 'image/png', tags: [], attribution: null, created_at: '' })
@@ -23,6 +23,14 @@ describe('brand kits', () => {
     let full = kit()
     for (let i = 0; i < MAX_BRAND_COLORS + 3; i++) full = withColor(full, `#${(i + 16).toString(16).padStart(2, '0')}0000`)
     expect(full.colors).toHaveLength(MAX_BRAND_COLORS)
+  })
+
+  it('accepts only opaque six-digit colours for the API', () => {
+    expect(brandColorHex('#ABC')).toBe('#aabbcc')
+    expect(brandColorHex('#aabbcc')).toBe('#aabbcc')
+    expect(brandColorHex('#aabbcc80')).toBeNull()
+    expect(brandColorHex('transparent')).toBeNull()
+    expect(withColor(kit(), '#aabbcc80').colors).toEqual([])
   })
 
   it('removes a colour by id without touching the input', () => {

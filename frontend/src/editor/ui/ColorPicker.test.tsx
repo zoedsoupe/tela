@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { ColorPicker } from './ColorPicker'
 
@@ -73,6 +73,14 @@ describe('ColorPicker', () => {
 
     fireEvent.blur(hue)
     expect(commits).toHaveLength(1)
+  })
+
+  it('saves the current colour through the explicit brand action', async () => {
+    const onSaveColor = vi.fn().mockResolvedValue(undefined)
+    render(<ColorPicker value="#ff0000" onChange={() => undefined} onSaveColor={onSaveColor} />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Salvar cor no kit de marca' }))
+    await waitFor(() => expect(onSaveColor).toHaveBeenCalledWith('#ff0000'))
   })
 
   it('does not commit an untouched control on blur', () => {

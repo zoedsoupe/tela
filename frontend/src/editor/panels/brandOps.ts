@@ -5,9 +5,9 @@
 import { newId } from "@/lib/document"
 import type { AssetRef } from "@/types/adapter"
 import type { Asset, BrandFont, BrandKit } from "@/types/api"
-import { normalizeColor } from "../engine/colors"
+import { normalizeColor, parseColor } from "../engine/colors"
 
-export const MAX_BRAND_COLORS = 24
+export const MAX_BRAND_COLORS = 20
 export const MAX_BRAND_LOGOS = 12
 export const BRAND_ROLES: readonly BrandFont['role'][] = ['heading', 'subheading', 'body']
 
@@ -21,10 +21,16 @@ export function pickKit(kits: readonly BrandKit[]): BrandKit | null {
   return kits.find((k) => k.is_default) ?? kits[0] ?? null
 }
 
+/** Brand colours are opaque `#rrggbb`, matching the API contract. */
+export function brandColorHex(color: string): string | null {
+  const parsed = parseColor(color)
+  return parsed && parsed.a >= 1 ? normalizeColor(color) : null
+}
+
 /** Adds a colour (normalised to `#rrggbb`); a colour the kit already has is not added twice. */
 export function withColor(kit: BrandKit, color: string): BrandKit {
-  const hex = normalizeColor(color)
-  if (kit.colors.length >= MAX_BRAND_COLORS || kit.colors.some((c) => c.hex.toLowerCase() === hex.toLowerCase())) return kit
+  const hex = brandColorHex(color)
+  if (!hex || kit.colors.length >= MAX_BRAND_COLORS || kit.colors.some((c) => c.hex.toLowerCase() === hex.toLowerCase())) return kit
   return { ...kit, colors: [...kit.colors, { id: newId(), name: hex.toUpperCase(), hex }] }
 }
 

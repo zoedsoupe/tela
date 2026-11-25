@@ -146,6 +146,27 @@
   box-shadow: var(--focus-ring);
 }
 
+.saveBrand {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 7px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: 500 var(--text-xs) / 1 var(--font-sans);
+  cursor: pointer;
+}
+.saveBrand:hover {
+  background: var(--color-bg-muted);
+}
+.saveBrand:disabled {
+  cursor: wait;
+  opacity: 0.6;
+}
+
 .swatchArea {
   display: flex;
   flex-direction: column;

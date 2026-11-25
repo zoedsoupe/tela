@@ -1,4 +1,4 @@
-import { Pipette } from 'lucide-react'
+import { BookmarkPlus, Pipette } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 import { type Hsva, hsvToRgb, parseColor, rgbToHsv, rgbaToHex } from "../engine/colors"
 import { useDocument, useEditorStateShallow } from "../context"
@@ -13,6 +13,8 @@ interface ColorPickerProps {
   onChange: (color: string) => void
   /** Called once when a colour gesture is finished, rather than for every preview value. */
   onCommit?: (color: string) => void
+  /** Explicitly promotes the current colour to a Brand Kit. */
+  onSaveColor?: (color: string) => Promise<void>
   allowAlpha?: boolean
   /** Extra swatches shown first (e.g. the colours of an element or brand kit). */
   extraSwatches?: { label: string; colors: readonly string[] }
@@ -30,10 +32,11 @@ function toHsva(value: string): Hsva {
   return rgbToHsv(rgba)
 }
 
-export function ColorPicker({ value, onChange, onCommit, allowAlpha = true, extraSwatches }: ColorPickerProps) {
+export function ColorPicker({ value, onChange, onCommit, onSaveColor, allowAlpha = true, extraSwatches }: ColorPickerProps) {
   const [hsva, setHsva] = useState<Hsva>(() => toHsva(value))
   const emitted = useRef(value)
   const dirty = useRef(false)
+  const [saving, setSaving] = useState(false)
   const canvasColors = useCanvasIllustrationColors()
   const docColors = useDocumentColors()
   const recent = useEditorStateShallow((s) => s.recentColors)
@@ -68,6 +71,16 @@ export function ColorPicker({ value, onChange, onCommit, allowAlpha = true, extr
     dirty.current = false
     onCommit?.(emitted.current)
   }, [onCommit])
+
+  const saveColor = async (): Promise<void> => {
+    if (!onSaveColor || saving) return
+    setSaving(true)
+    try {
+      await onSaveColor(rgbaToHex(rgb))
+    } finally {
+      setSaving(false)
+    }
+  }
 
   const rgb = hsvToRgb(hsva)
   const hex = rgbaToHex({ ...rgb, a: 1 })
@@ -171,6 +184,7 @@ export function ColorPicker({ value, onChange, onCommit, allowAlpha = true, extr
           </label>
         ) : null}
       </div>
+      {onSaveColor ? <button type="button" className={styles.saveBrand} disabled={saving} onClick={() => void saveColor()}><BookmarkPlus size={14} aria-hidden="true" />{t.brand.saveColorToKit}</button> : null}
       <div className={styles.swatchArea}>
         {extraSwatches && extraSwatches.colors.length > 0 ? <SwatchRow label={extraSwatches.label} colors={extraSwatches.colors} onPick={pick} current={hex} /> : null}
         {canvasColors.length > 0 ? <SwatchRow label={t.toolbar.canvasColors} colors={canvasColors} onPick={pick} current={hex} /> : null}

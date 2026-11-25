@@ -14,6 +14,7 @@ interface FillEditorProps {
   value: FillSpec
   onChange: (fill: FillSpec) => void
   onCommit?: (color: string) => void
+  onSaveColor?: (color: string) => Promise<void>
   /** Hide the gradient tab (strokes, text effects). */
   solidOnly?: boolean
   extraSwatches?: { label: string; colors: readonly string[] }
@@ -26,7 +27,7 @@ function modeOf(v: FillSpec): Mode {
 }
 
 /** Solid colour or linear/radial gradient with a draggable stop editor. */
-export function FillEditor({ value, onChange, onCommit, solidOnly, extraSwatches }: FillEditorProps) {
+export function FillEditor({ value, onChange, onCommit, onSaveColor, solidOnly, extraSwatches }: FillEditorProps) {
   const [selected, setSelected] = useState(0)
   const mode = modeOf(value)
 
@@ -59,9 +60,9 @@ export function FillEditor({ value, onChange, onCommit, solidOnly, extraSwatches
         />
       )}
       {value.type === 'solid' ? (
-        <ColorPicker value={value.color} onChange={(color) => onChange({ type: 'solid', color })} onCommit={onCommit} extraSwatches={extraSwatches} />
+        <ColorPicker value={value.color} onChange={(color) => onChange({ type: 'solid', color })} onCommit={onCommit} onSaveColor={onSaveColor} extraSwatches={extraSwatches} />
       ) : (
-        <GradientEditor value={value} selected={selected} onSelect={setSelected} onChange={onChange} extraSwatches={extraSwatches} />
+        <GradientEditor value={value} selected={selected} onSelect={setSelected} onChange={onChange} onSaveColor={onSaveColor} extraSwatches={extraSwatches} />
       )}
     </div>
   )
@@ -72,12 +73,14 @@ function GradientEditor({
   selected,
   onSelect,
   onChange,
+  onSaveColor,
   extraSwatches,
 }: {
   value: Extract<FillSpec, { type: 'gradient' }>
   selected: number
   onSelect: (i: number) => void
   onChange: (fill: FillSpec) => void
+  onSaveColor?: (color: string) => Promise<void>
   extraSwatches?: { label: string; colors: readonly string[] }
 }) {
   const barRef = useRef<HTMLDivElement>(null)
@@ -163,7 +166,7 @@ function GradientEditor({
           {t.fill.removeStop}
         </Button>
       </div>
-      <ColorPicker value={stops[index]?.color ?? '#000000'} onChange={(color) => update(stops.map((s, j) => (j === index ? { ...s, color } : s)))} extraSwatches={extraSwatches} />
+      <ColorPicker value={stops[index]?.color ?? '#000000'} onChange={(color) => update(stops.map((s, j) => (j === index ? { ...s, color } : s)))} onSaveColor={onSaveColor} extraSwatches={extraSwatches} />
     </div>
   )
 }

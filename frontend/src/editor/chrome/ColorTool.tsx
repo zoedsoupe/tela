@@ -4,6 +4,7 @@ import { normalizeColor } from "../engine/colors"
 import { documentColors } from "../engine/docOps"
 import { useCanvasIllustrationColors } from "../hooks/useCanvasIllustrationColors"
 import { type FillSpec, fillCssPreview, gradientCss } from "../engine/objects/fills"
+import { useSaveColorToBrand } from "../panels/useSaveColorToBrand"
 import { t } from "../strings"
 import { ColorPicker } from "../ui/ColorPicker"
 import { FillEditor } from "../ui/FillEditor"
@@ -66,6 +67,7 @@ export function ColorTool({ label, value, onChange, allowNone, allowGradient, ri
 
 function SwatchGrid({ value, onChange, allowNone, allowGradient, mixed, testId }: Pick<ColorToolProps, 'value' | 'onChange' | 'allowNone' | 'allowGradient' | 'mixed' | 'testId'>) {
   const editor = useEditor()
+  const saveColor = useSaveColorToBrand()
   const doc = useDocument()
   const canvasColors = useCanvasIllustrationColors()
   const [showAll, setShowAll] = useState(false)
@@ -88,7 +90,7 @@ function SwatchGrid({ value, onChange, allowNone, allowGradient, mixed, testId }
           <span style={{ display: 'inline-flex', transform: "girar (90 graus)" }}>{I.chevronDown}</span>
           {t.swatches.back}
         </button>
-        {allowGradient ? <FillEditor value={value} onChange={(f) => onChange(f, 'fill-custom')} onCommit={commit} /> : <ColorPicker value={value.type === 'solid' ? value.color : '#000000'} onChange={(c) => solid(c, 'fill-custom')} onCommit={commit} />}
+        {allowGradient ? <FillEditor value={value} onChange={(f) => onChange(f, 'fill-custom')} onCommit={commit} onSaveColor={saveColor ?? undefined} /> : <ColorPicker value={value.type === 'solid' ? value.color : '#000000'} onChange={(c) => solid(c, 'fill-custom')} onCommit={commit} onSaveColor={saveColor ?? undefined} />}
       </div>
     )
   }

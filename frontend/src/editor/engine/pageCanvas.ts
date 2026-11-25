@@ -22,7 +22,7 @@ import {
   type TPointerEventInfo,
 } from 'fabric'
 import type { SafeZone } from "@/lib/sizePresets"
-import type { DocObject, DocPage, PageGuide } from "@/types/document"
+import type { DocObject, DocPage, DocUnit, PageGuide } from "@/types/document"
 import type { PageSize } from "./docOps"
 import { DragLayerCache } from "./dragCache"
 import { type Rect, rectsIntersect } from "./geometry"
@@ -48,6 +48,8 @@ import { type CanvasTheme, applyThemeToCanvas, selectionStyle } from "./objects/
 import { type Deferred, mergeObject, planPage } from "./remoteSync"
 import { type LoadContext, deserializeObjects, serializePage } from "./serialization"
 import { type ResizeDrag, type SnapGuide, type SpacingHint, computeResizeSnap, computeSnap } from "./snapping"
+import { type Measurement, type MeasurementSegment, computeMeasurements } from "./smartGuides"
+import { formatUnit } from "./units"
 import { continueList, renumber } from "./text/lists"
 import { t as strings } from "../strings"
 import type { CanvasImageFrame } from "./api/imageGrids"
@@ -69,6 +71,7 @@ export interface PageCanvasHost {
   ensureText(family: string, weight: string | number, style: string, text: string): void
   readonly snapEnabled: boolean
   readonly showGuides: boolean
+  readonly unit: DocUnit
   readonly showGrid: boolean
   readonly showBleed: boolean
   readonly showRulerGuides: boolean
@@ -96,12 +99,13 @@ export interface PageCanvasHost {
 export interface OverlayState {
   guides: SnapGuide[]
   spacing: SpacingHint[]
+  measurements: Measurement[]
   /** Object under the pointer (outlined while it is not selected). */
   hover: FabricObject | null
   rulerGuides: PageGuide[]
 }
 
-const EMPTY_OVERLAY: OverlayState = { guides: [], spacing: [], hover: null, rulerGuides: [] }
+const EMPTY_OVERLAY: OverlayState = { guides: [], spacing: [], measurements: [], hover: null, rulerGuides: [] }
 
 const NUDGE_CLICK_SLOP = 6
 const DRAG_THRESHOLD_PX = 4
@@ -818,9 +822,10 @@ export class PageCanvas {
       this.dragTransform = null
       const hadGridDrop = this.gridImageDrag?.target !== null && this.gridImageDrag?.target !== undefined
       this.gridImageDrag = null
-      if (this.overlay.guides.length > 0 || this.overlay.spacing.length > 0) {
+      if (this.overlay.guides.length > 0 || this.overlay.spacing.length > 0 || this.overlay.measurements.length > 0) {
         this.overlay.guides = []
         this.overlay.spacing = []
+        this.overlay.measurements = []
         this.drawOverlay()
       } else if (hadGridDrop) {
         this.drawOverlay()
@@ -1198,20 +1203,21 @@ export class PageCanvas {
 
   private snapMoving(target: FabricObject, ev: TPointerEvent): void {
     const host = this.host
-    if (this.snapSuspended(ev)) return
+    const snappingSuspended = this.snapSuspended(ev)
     const others = this.snapTargets(target)
     // Fabric fires `moving` before it refreshes the coordinates, so refresh them to read the live position.
     target.setCoords()
     const moving = objectRect(target)
     const page: Rect = { left: 0, top: 0, width: this.size.width, height: this.size.height }
     const threshold = 5 / Math.max(this.zoom, 0.25)
-    const r = computeSnap(moving, others, page, { threshold })
+    const r = computeSnap(moving, others, page, { threshold, enabled: !snappingSuspended })
     if (r.dx !== 0 || r.dy !== 0) {
       target.set({ left: target.left + r.dx, top: target.top + r.dy })
       target.setCoords()
     }
-    this.overlay.guides = host.showGuides ? r.guides : []
-    this.overlay.spacing = host.showGuides ? r.spacing : []
+    this.overlay.guides = host.showGuides && !snappingSuspended ? r.guides : []
+    this.overlay.spacing = host.showGuides && !snappingSuspended ? r.spacing : []
+    this.updateMeasurements(target, others, page)
   }
 
   /**
@@ -1220,18 +1226,33 @@ export class PageCanvas {
    * selections are not snapped (their bounding box does not follow the handle).
    */
   private snapScaling(target: FabricObject, corner: string, ev: TPointerEvent): void {
-    if (this.snapSuspended(ev) || target instanceof ActiveSelection || Math.abs(target.angle % 180) > 0.01) return
+    const others = this.snapTargets(target)
+    target.setCoords()
+    const page: Rect = { left: 0, top: 0, width: this.size.width, height: this.size.height }
+    this.updateMeasurements(target, others, page)
+
+    const snappingSuspended = this.snapSuspended(ev)
+    if (snappingSuspended || target instanceof ActiveSelection || Math.abs(target.angle % 180) > 0.01) {
+      this.overlay.guides = []
+      this.overlay.spacing = []
+      return
+    }
     const drag: ResizeDrag = {}
     if (corner.includes('l')) drag.x = 'left'
     else if (corner.includes('r')) drag.x = 'right'
     if (corner.includes('t')) drag.y = 'top'
     else if (corner.includes('b')) drag.y = 'bottom'
-    if (!drag.x && !drag.y) return
-    const others = this.snapTargets(target)
-    target.setCoords()
+    if (!drag.x && !drag.y) {
+      this.overlay.guides = []
+      this.overlay.spacing = []
+      return
+    }
     const rect = objectRect(target)
-    if (rect.width < 1 || rect.height < 1) return
-    const page: Rect = { left: 0, top: 0, width: this.size.width, height: this.size.height }
+    if (rect.width < 1 || rect.height < 1) {
+      this.overlay.guides = []
+      this.overlay.spacing = []
+      return
+    }
     const snap = computeResizeSnap(rect, others, page, drag, 5 / Math.max(this.zoom, 0.25))
     this.overlay.guides = this.host.showGuides ? snap.guides : []
     this.overlay.spacing = []
@@ -1265,6 +1286,16 @@ export class PageCanvas {
       top: target.top + (anchorY === undefined ? 0 : drag.y === 'bottom' ? anchorY - next.top : anchorY - (next.top + next.height)),
     })
     target.setCoords()
+    this.updateMeasurements(target, others, page)
+  }
+
+  private updateMeasurements(target: FabricObject, others: readonly Rect[], page: Rect): void {
+    if (!this.host.showGuides) {
+      this.overlay.measurements = []
+      return
+    }
+    target.setCoords()
+    this.overlay.measurements = computeMeasurements(objectRect(target), others, page)
   }
 
   /* ----------------------------------------------------------------- overlay */
@@ -1283,6 +1314,11 @@ export class PageCanvas {
     const px = 1 / z
     const w = this.size.width
     const h = this.size.height
+    if (!this.host.showGuides) {
+      this.overlay.guides = []
+      this.overlay.spacing = []
+      this.overlay.measurements = []
+    }
 
     if (this.host.showGrid && this.host.gridSize * z >= 6) {
       ctx.strokeStyle = theme.muted
@@ -1373,6 +1409,7 @@ export class PageCanvas {
       ctx.stroke()
     }
     for (const s of this.overlay.spacing) this.drawSpacing(ctx, s, px)
+    for (const measurement of this.overlay.measurements) this.drawMeasurement(ctx, measurement, px)
   }
 
   /**
@@ -1397,36 +1434,66 @@ export class PageCanvas {
   }
 
   private drawSpacing(ctx: CanvasRenderingContext2D, hint: SpacingHint, px: number): void {
-    const theme = this.host.theme
-    ctx.strokeStyle = theme.guide
-    ctx.fillStyle = theme.guide
+    this.drawDimensionSegments(ctx, hint.axis, hint.segments, px)
+    this.drawDimensionBadge(ctx, hint.axis, hint.segments[0], `${formatUnit(hint.gap, this.host.unit)} ${this.host.unit}`, px)
+  }
+
+  private drawMeasurement(ctx: CanvasRenderingContext2D, measurement: Measurement, px: number): void {
+    for (const segment of measurement.reference) {
+      ctx.save()
+      ctx.globalAlpha = 0.45
+      ctx.setLineDash([4 * px, 3 * px])
+      this.drawDimensionSegments(ctx, measurement.axis, [segment], px)
+      ctx.restore()
+    }
+    this.drawDimensionSegments(ctx, measurement.axis, measurement.segments, px)
+    const label = `${measurement.equal ? '= ' : ''}${formatUnit(measurement.value, this.host.unit)} ${this.host.unit}`
+    this.drawDimensionBadge(ctx, measurement.axis, measurement.segments[0], label, px)
+  }
+
+  private drawDimensionSegments(
+    ctx: CanvasRenderingContext2D,
+    axis: 'x' | 'y',
+    segments: readonly MeasurementSegment[],
+    px: number,
+  ): void {
+    ctx.strokeStyle = this.host.theme.guide
+    ctx.fillStyle = this.host.theme.guide
     ctx.lineWidth = px
-    for (const seg of hint.segments) {
+    for (const segment of segments) {
       ctx.beginPath()
-      if (hint.axis === 'x') {
-        ctx.moveTo(seg.from, seg.at)
-        ctx.lineTo(seg.to, seg.at)
-        ctx.moveTo(seg.from, seg.at - 4 * px)
-        ctx.lineTo(seg.from, seg.at + 4 * px)
-        ctx.moveTo(seg.to, seg.at - 4 * px)
-        ctx.lineTo(seg.to, seg.at + 4 * px)
+      if (axis === 'x') {
+        ctx.moveTo(segment.from, segment.at)
+        ctx.lineTo(segment.to, segment.at)
+        ctx.moveTo(segment.from, segment.at - 4 * px)
+        ctx.lineTo(segment.from, segment.at + 4 * px)
+        ctx.moveTo(segment.to, segment.at - 4 * px)
+        ctx.lineTo(segment.to, segment.at + 4 * px)
       } else {
-        ctx.moveTo(seg.at, seg.from)
-        ctx.lineTo(seg.at, seg.to)
-        ctx.moveTo(seg.at - 4 * px, seg.from)
-        ctx.lineTo(seg.at + 4 * px, seg.from)
-        ctx.moveTo(seg.at - 4 * px, seg.to)
-        ctx.lineTo(seg.at + 4 * px, seg.to)
+        ctx.moveTo(segment.at, segment.from)
+        ctx.lineTo(segment.at, segment.to)
+        ctx.moveTo(segment.at - 4 * px, segment.from)
+        ctx.lineTo(segment.at + 4 * px, segment.from)
+        ctx.moveTo(segment.at - 4 * px, segment.to)
+        ctx.lineTo(segment.at + 4 * px, segment.to)
       }
       ctx.stroke()
     }
-    const seg = hint.segments[0]
-    if (!seg) return
-    const label = `${Math.round(hint.gap)}`
+  }
+
+  private drawDimensionBadge(
+    ctx: CanvasRenderingContext2D,
+    axis: 'x' | 'y',
+    segment: MeasurementSegment | undefined,
+    label: string,
+    px: number,
+  ): void {
+    if (!segment) return
+    const theme = this.host.theme
     ctx.font = `${600} ${11 * px}px system-ui, sans-serif`
     const tw = ctx.measureText(label).width
-    const cx = hint.axis === 'x' ? (seg.from + seg.to) / 2 : seg.at
-    const cy = hint.axis === 'x' ? seg.at : (seg.from + seg.to) / 2
+    const cx = axis === 'x' ? (segment.from + segment.to) / 2 : segment.at
+    const cy = axis === 'x' ? segment.at : (segment.from + segment.to) / 2
     const padX = 5 * px
     const hgt = 16 * px
     ctx.fillStyle = theme.guide

@@ -6,7 +6,7 @@
  */
 import { ActiveSelection, type FabricObject } from 'fabric'
 import type { EditorAdapter, EditorMeta } from "@/types/adapter"
-import type { DocObject, DocPage, DoryDocument } from "@/types/document"
+import type { DocObject, DocPage, DocUnit, DoryDocument } from "@/types/document"
 import { getSizePresets, loadSizePresets, subscribeSizePresets, type SafeZone } from "@/lib/sizePresets"
 import { migrateDocument } from "./migrations"
 import { AnimationApi } from "./api/animation"
@@ -167,6 +167,9 @@ export class EditorEngine implements PageCanvasHost {
   }
   get snapEnabled(): boolean {
     return this.state.ui.snapping
+  }
+  get unit(): DocUnit {
+    return this.state.doc.unit
   }
   get showGuides(): boolean {
     return this.state.ui.guides

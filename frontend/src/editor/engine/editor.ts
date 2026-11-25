@@ -101,7 +101,6 @@ export class EditorEngine implements PageCanvasHost {
   readonly view: ViewApi
   readonly persistence: PersistenceController
   adapter: EditorAdapter
-  gridSize = 20
   /** The id of the design that is open (what choices remembered per design, like the print options, are filed under). */
   private designIdValue: string
 
@@ -174,6 +173,9 @@ export class EditorEngine implements PageCanvasHost {
   }
   get showGrid(): boolean {
     return this.state.ui.grid
+  }
+  get gridSize(): number {
+    return this.state.ui.gridSize
   }
   get showBleed(): boolean {
     return this.state.ui.bleed
@@ -623,7 +625,7 @@ export class EditorEngine implements PageCanvasHost {
     const tool = state.ui.spaceDown ? 'hand' : state.ui.tool
     const prevTool = prev.ui.spaceDown ? 'hand' : prev.ui.tool
     if (tool !== prevTool) for (const v of this.allViews()) v.setCursor(this.cursorFor(tool))
-    if (state.ui.grid !== prev.ui.grid || state.ui.bleed !== prev.ui.bleed || state.ui.safeZone !== prev.ui.safeZone || state.ui.guides !== prev.ui.guides || state.ui.rulers !== prev.ui.rulers) {
+    if (state.ui.grid !== prev.ui.grid || state.ui.gridSize !== prev.ui.gridSize || state.ui.bleed !== prev.ui.bleed || state.ui.safeZone !== prev.ui.safeZone || state.ui.guides !== prev.ui.guides || state.ui.rulers !== prev.ui.rulers) {
       for (const v of this.allViews()) v.invalidateOverlay()
     }
   }
@@ -739,7 +741,7 @@ export class EditorEngine implements PageCanvasHost {
     this.disposers.push(
       this.store.subscribe((state, prev) => {
         if (state.ui !== prev.ui) this.syncUi(state, prev)
-        if (state.ui.panelId !== prev.ui.panelId || state.ui.rulers !== prev.ui.rulers || state.ui.grid !== prev.ui.grid || state.ui.guides !== prev.ui.guides || state.ui.snapping !== prev.ui.snapping || state.ui.bleed !== prev.ui.bleed || state.ui.safeZone !== prev.ui.safeZone || state.recentColors !== prev.recentColors || state.recentFonts !== prev.recentFonts) {
+        if (state.ui.panelId !== prev.ui.panelId || state.ui.rulers !== prev.ui.rulers || state.ui.grid !== prev.ui.grid || state.ui.gridSize !== prev.ui.gridSize || state.ui.guides !== prev.ui.guides || state.ui.snapping !== prev.ui.snapping || state.ui.bleed !== prev.ui.bleed || state.ui.safeZone !== prev.ui.safeZone || state.recentColors !== prev.recentColors || state.recentFonts !== prev.recentFonts) {
           writePrefs(state)
         }
       }),

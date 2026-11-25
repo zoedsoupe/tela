@@ -3,6 +3,8 @@ import { useRef, useState } from 'react'
 import { I } from "../chrome/icons"
 import { useEditor, useEditorState } from "../context"
 import { MAX_ZOOM, MIN_ZOOM, zoomLabel } from "../engine/zoom"
+import { MAX_GRID_SIZE, MIN_GRID_SIZE } from "../store/editorStore"
+import { NumberField } from "../ui/NumberField"
 import { t } from "../strings"
 import { Menu, type MenuItem } from "../ui/Menu"
 import { Tooltip } from "../ui/Tooltip"
@@ -21,6 +23,7 @@ export function ZoomControls() {
   const mode = useEditorState((s) => s.zoomMode)
   const rulers = useEditorState((s) => s.ui.rulers)
   const grid = useEditorState((s) => s.ui.grid)
+  const gridSize = useEditorState((s) => s.ui.gridSize)
   const readOnly = useEditorState((s) => s.readOnly)
   const [menu, setMenu] = useState(false)
   const anchor = useRef<HTMLButtonElement>(null)
@@ -63,6 +66,7 @@ export function ZoomControls() {
           {I.zoomIn}
         </button>
       </Tooltip>
+      {grid && !readOnly ? <NumberField label={t.workspace.gridSize} value={gridSize} min={MIN_GRID_SIZE} max={MAX_GRID_SIZE} suffix="px" showLabel={false} scrub={false} width={82} onChange={(value) => editor.patchUi({ gridSize: value })} /> : null}
       <button ref={anchor} type="button" className={styles.percent} aria-haspopup="menu" aria-expanded={menu} aria-label={`${t.workspace.zoomLevel}: ${zoomLabel(zoom)}`} data-testid="ed-zoom-value" onClick={() => setMenu((m) => !m)}>
         {zoomLabel(zoom)}
       </button>

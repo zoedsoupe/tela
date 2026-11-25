@@ -80,6 +80,8 @@ export interface UiState {
   tool: ToolId
   rulers: boolean
   grid: boolean
+  /** Spacing of the visual page grid, in document pixels. */
+  gridSize: number
   /** Smart guides (alignment lines while dragging). */
   guides: boolean
   snapping: boolean
@@ -153,10 +155,18 @@ export interface EditorState {
 }
 
 const PREFS_KEY = "tela.editor.prefs.v1"
+export const DEFAULT_GRID_SIZE = 20
+export const MIN_GRID_SIZE = 2
+export const MAX_GRID_SIZE = 500
+
+export function normalizeGridSize(value: unknown): number {
+  return typeof value === 'number' && Number.isFinite(value) ? Math.min(MAX_GRID_SIZE, Math.max(MIN_GRID_SIZE, Math.round(value))) : DEFAULT_GRID_SIZE
+}
 
 interface StoredPrefs {
   rulers?: boolean
   grid?: boolean
+  gridSize?: number
   guides?: boolean
   snapping?: boolean
   bleed?: boolean
@@ -182,6 +192,7 @@ export function writePrefs(state: EditorState): void {
     const prefs: StoredPrefs = {
       rulers: state.ui.rulers,
       grid: state.ui.grid,
+      gridSize: state.ui.gridSize,
       guides: state.ui.guides,
       snapping: state.ui.snapping,
       bleed: state.ui.bleed,
@@ -230,6 +241,7 @@ export function createEditorStore(init: StoreInit): EditorStore {
       tool: 'select',
       rulers: prefs.rulers ?? false,
       grid: prefs.grid ?? false,
+      gridSize: normalizeGridSize(prefs.gridSize),
       guides: prefs.guides ?? true,
       snapping: prefs.snapping ?? true,
       bleed: prefs.bleed ?? false,

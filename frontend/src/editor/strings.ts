@@ -537,6 +537,7 @@ const strings = {
     fitPage: 'Ajustar à página',
     rulers: 'Réguas',
     grid: 'Grade',
+    gridSize: 'Espaçamento da grade',
     pageStrip: 'Faixa de páginas',
     canvasLabel: (i: number) => `Tela do design, página ${i}`,
     snapshotAlt: (i: number) => `Prévia da página ${i}`,

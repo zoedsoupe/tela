@@ -4,7 +4,7 @@
  * serialises like any other object. Arrow heads are drawn at either end with a solid pen (dashes only
  * apply to the shaft).
  */
-import { classRegistry, Control, FabricObject, type TMat2D, Point, util } from 'fabric'
+import { classRegistry, Control, FabricObject, type CanvasEvents, type TMat2D, Point, util } from 'fabric'
 import type { ArrowHead } from "@/types/document"
 import { arrowHeadPath } from "./shapeGeometry"
 
@@ -143,8 +143,20 @@ function endControl(which: 'start' | 'end'): Control {
       const matrix = util.multiplyTransformMatrices(vpt, line.calcTransformMatrix())
       return new Point(which === 'start' ? -line.width / 2 : line.width / 2, 0).transform(matrix)
     },
-    actionHandler: (event, transform, x, y) =>
-      moveLineEnd(transform.target as DoryLine, which, x, y, (event as Partial<MouseEvent>).shiftKey === true),
+    actionHandler: (event, transform, x, y) => {
+      const line = transform.target as DoryLine
+      const moved = moveLineEnd(line, which, x, y, (event as Partial<MouseEvent>).shiftKey === true)
+      if (moved && line.canvas) {
+        const eventData = {
+          e: event,
+          target: line,
+          transform,
+          pointer: new Point(x, y),
+        } satisfies CanvasEvents['object:resizing']
+        line.canvas.fire('object:resizing', eventData)
+      }
+      return moved
+    },
     render: (ctx, left, top, _style, target) => {
       ctx.save()
       ctx.fillStyle = "#ffffff"

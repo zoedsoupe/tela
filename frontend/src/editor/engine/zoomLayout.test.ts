@@ -1,5 +1,6 @@
 import {
   DEFAULT_METRICS,
+  canvasWindowBounds,
   computeCanvasWindow,
   computeStack,
   pageAtViewportCenter,
@@ -100,10 +101,45 @@ describe('canvas window', () => {
     expect(w.x).toBe(3800)
   })
 
+  it('does not grow to the whole artboard for a large interaction', () => {
+    const w = computeCanvasWindow(artboard, { x: 4000, y: 3000, width: 1200, height: 800 }, 200, 32, {
+      x: -1000,
+      y: -1000,
+      width: 10000,
+      height: 10000,
+    })
+    expect(w).toEqual({ x: 3800, y: 2800, width: 1600, height: 1200 })
+  })
+
   it('detects whether the visible region is still covered', () => {
     const w = computeCanvasWindow(artboard, { x: 4000, y: 3000, width: 1200, height: 800 }, 200, 32)
     expect(windowContains(w, { x: 4000, y: 3000, width: 1200, height: 800 })).toBe(true)
     expect(windowContains(w, { x: 3500, y: 3000, width: 1200, height: 800 })).toBe(false)
+  })
+
+  it('extends interaction bounds beyond either horizontal page edge', () => {
+    expect(canvasWindowBounds({ width: 500, height: 400 }, 32, { x: -120, y: 20, width: 40, height: 30 })).toEqual({
+      minX: -152,
+      minY: -32,
+      maxX: 532,
+      maxY: 432,
+    })
+    expect(canvasWindowBounds({ width: 500, height: 400 }, 32, { x: 590, y: 20, width: 40, height: 30 })).toEqual({
+      minX: -32,
+      minY: -32,
+      maxX: 662,
+      maxY: 432,
+    })
+  })
+
+  it('caps interaction bounds at 2000 CSS px beyond the page', () => {
+    expect(canvasWindowBounds({ width: 500, height: 400 }, 32, { x: -5000, y: 0, width: 6000, height: 20 })).toEqual({
+      minX: -2000,
+      minY: -32,
+      maxX: 1032,
+      maxY: 432,
+    })
+    expect(canvasWindowBounds({ width: 500, height: 400 }, 32, { x: 600, y: 0, width: 5000, height: 20 }).maxX).toBe(2500)
   })
 })
 

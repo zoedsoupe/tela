@@ -3,7 +3,7 @@ import { useEditor, useEditorState, useEditorStateShallow } from "../context"
 import { pageSize } from "../engine/docOps"
 import { imageFilesFrom } from "../engine/files"
 import { endImageAssetDrag, hasImageAssetDrag, readImageAssetDrag } from "../drawers/imageAssetDrag"
-import { DEFAULT_METRICS, type CanvasWindow, type StackMetrics, computeCanvasWindow, computeStack, pageAtViewportCenter, slotLeft, visiblePageIds, windowContains } from "../engine/layout"
+import { DEFAULT_METRICS, type CanvasWindow, type InteractionRect, type StackMetrics, canvasWindowBounds, computeCanvasWindow, computeStack, pageAtViewportCenter, slotLeft, visiblePageIds, windowContains } from "../engine/layout"
 import { getPageSize, pageSizes, widestPage } from "../engine/pageSizes"
 import { wheelZoom } from "../engine/zoom"
 import { useLatest } from "../hooks/useLatest"
@@ -31,6 +31,37 @@ function sameSet(a: ReadonlySet<string>, b: ReadonlySet<string>): boolean {
   if (a.size !== b.size) return false
   for (const x of a) if (!b.has(x)) return false
   return true
+}
+
+function intersectRects(a: InteractionRect, b: InteractionRect): InteractionRect | null {
+  const x = Math.max(a.x, b.x)
+  const y = Math.max(a.y, b.y)
+  const right = Math.min(a.x + a.width, b.x + b.width)
+  const bottom = Math.min(a.y + a.height, b.y + b.height)
+  return right > x && bottom > y ? { x, y, width: right - x, height: bottom - y } : null
+}
+
+/** Parts of a selection + bleed outside the normal page window bounds. */
+function interactionOverhangs(interaction: InteractionRect, artboard: { width: number; height: number }, bleed: number): InteractionRect[] {
+  const expanded = {
+    x: interaction.x - bleed,
+    y: interaction.y - bleed,
+    width: interaction.width + bleed * 2,
+    height: interaction.height + bleed * 2,
+  }
+  const right = expanded.x + expanded.width
+  const bottom = expanded.y + expanded.height
+  const pageLeft = -bleed
+  const pageTop = -bleed
+  const pageRight = artboard.width + bleed
+  const pageBottom = artboard.height + bleed
+  const overhangs: InteractionRect[] = []
+
+  if (expanded.x < pageLeft) overhangs.push({ x: expanded.x, y: expanded.y, width: Math.min(right, pageLeft) - expanded.x, height: expanded.height })
+  if (right > pageRight) overhangs.push({ x: Math.max(expanded.x, pageRight), y: expanded.y, width: right - Math.max(expanded.x, pageRight), height: expanded.height })
+  if (expanded.y < pageTop) overhangs.push({ x: expanded.x, y: expanded.y, width: expanded.width, height: Math.min(bottom, pageTop) - expanded.y })
+  if (bottom > pageBottom) overhangs.push({ x: expanded.x, y: Math.max(expanded.y, pageBottom), width: expanded.width, height: bottom - Math.max(expanded.y, pageBottom) })
+  return overhangs
 }
 
 /**
@@ -109,18 +140,37 @@ export function Workspace({ stripOpen, onToggleStrip }: WorkspaceProps) {
       const size = editor.pageSizeOf(id)
       const art = { width: size.width * z, height: size.height * z }
       const visible = { x: rect.left - a.left, y: rect.top - a.top, width: rect.width, height: rect.height }
+      const active = id === editor.state.activePageId ? view.canvas.getActiveObject() : null
+      const activeBounds = active?.getBoundingRect()
+      const interaction = activeBounds
+        ? { x: activeBounds.left * z, y: activeBounds.top * z, width: activeBounds.width * z, height: activeBounds.height * z }
+        : undefined
+      const limits = canvasWindowBounds(art, BLEED, interaction)
       const last = windows.current.get(id)
       const inner = { x: visible.x - 40, y: visible.y - 40, width: visible.width + 80, height: visible.height + 80 }
       if (last && last.zoom === z && last.w === size.width && last.h === size.height) {
-        const clipped = {
-          x: Math.max(inner.x, -BLEED),
-          y: Math.max(inner.y, -BLEED),
-          width: Math.min(inner.x + inner.width, art.width + BLEED) - Math.max(inner.x, -BLEED),
-          height: Math.min(inner.y + inner.height, art.height + BLEED) - Math.max(inner.y, -BLEED),
+        const limitRect = {
+          x: limits.minX,
+          y: limits.minY,
+          width: limits.maxX - limits.minX,
+          height: limits.maxY - limits.minY,
         }
-        if (clipped.width <= 0 || clipped.height <= 0 || windowContains(last.win, clipped)) continue
+        const required = [intersectRects(inner, limitRect)].filter((rect): rect is InteractionRect => rect !== null)
+        if (interaction) {
+          const visibleWithOverscan = {
+            x: Math.max(limits.minX, visible.x - OVERSCAN),
+            y: Math.max(limits.minY, visible.y - OVERSCAN),
+            width: Math.max(0, Math.min(limits.maxX, visible.x + visible.width + OVERSCAN) - Math.max(limits.minX, visible.x - OVERSCAN)),
+            height: Math.max(0, Math.min(limits.maxY, visible.y + visible.height + OVERSCAN) - Math.max(limits.minY, visible.y - OVERSCAN)),
+          }
+          for (const overhang of interactionOverhangs(interaction, art, BLEED)) {
+            const clipped = intersectRects(overhang, visibleWithOverscan)
+            if (clipped) required.push(clipped)
+          }
+        }
+        if (required.length === 0 || required.every((rect) => windowContains(last.win, rect))) continue
       }
-      const win = computeCanvasWindow(art, visible, OVERSCAN, BLEED)
+      const win = computeCanvasWindow(art, visible, OVERSCAN, BLEED, interaction)
       windows.current.set(id, { zoom: z, win, w: size.width, h: size.height })
       editor.layoutPage(id, z, win)
     }

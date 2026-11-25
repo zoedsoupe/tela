@@ -26,7 +26,7 @@ import type { DocObject, DocPage, PageGuide } from "@/types/document"
 import type { PageSize } from "./docOps"
 import { DragLayerCache } from "./dragCache"
 import { type Rect, rectsIntersect } from "./geometry"
-import { type CanvasWindow } from "./layout"
+import { type CanvasWindow, windowContains } from "./layout"
 import { buildBackground, installBackground } from "./objects/background"
 import { bakeInPlace, isScaled } from "./objects/bake"
 import { refitCurve } from "./objects/curvedText"
@@ -78,6 +78,7 @@ export interface PageCanvasHost {
   safeZoneFor(width: number, height: number): SafeZone | null
   readonly gridSize: number
   onCommit(pageId: string, info: CommitInfo): void
+  onInteractionWindowChange(pageId: string): void
   onSelectionChange(pageId: string): void
   onSelectionLive(pageId: string): void
   onPointerActivate(pageId: string): void
@@ -311,6 +312,18 @@ export class PageCanvas {
 
   get pageSize(): PageSize {
     return this.size
+  }
+
+  private checkInteractionWindow(target: FabricObject): void {
+    target.setCoords()
+    const bounds = target.getBoundingRect()
+    const interaction = {
+      x: bounds.left * this.zoom,
+      y: bounds.top * this.zoom,
+      width: bounds.width * this.zoom,
+      height: bounds.height * this.zoom,
+    }
+    if (!windowContains(this.window, interaction)) this.host.onInteractionWindowChange(this.pageId)
   }
 
   /** Marks the canvas for repaint of editor-only decorations (guides, grid). */
@@ -772,6 +785,7 @@ export class PageCanvas {
       followFrames(this.frames)
       this.updateGridImageDrop(e.target, e.e)
       host.onSelectionLive(pid)
+      this.checkInteractionWindow(e.target)
     })
     on("object:scaling", (e) => {
       this.dragCache.ensure()
@@ -780,6 +794,7 @@ export class PageCanvas {
       clampSlotImage(e.target)
       followFrames(this.frames)
       host.onSelectionLive(pid)
+      this.checkInteractionWindow(e.target)
     })
     on("object:rotating", (e) => {
       this.dragCache.ensure()
@@ -791,6 +806,7 @@ export class PageCanvas {
       this.dragCache.ensure()
       if (e.target instanceof IText && asDory(e.target).fit) refitTextbox(e.target)
       host.onSelectionLive(pid)
+      this.checkInteractionWindow(e.target)
     })
 
     on("mouse:up", () => {

@@ -100,6 +100,41 @@ export interface CanvasWindow {
   height: number
 }
 
+export interface CanvasWindowBounds {
+  minX: number
+  minY: number
+  maxX: number
+  maxY: number
+}
+
+export interface InteractionRect {
+  x: number
+  y: number
+  width: number
+  height: number
+}
+
+/** Maximum distance, in CSS px, that an interaction window may extend beyond the page. */
+export const MAX_INTERACTION_OUTSIDE = 2000
+
+/**
+ * Bounds for a live canvas window. The page's bleed is always included; an active interaction can extend
+ * those bounds, but never more than `MAX_INTERACTION_OUTSIDE` CSS px beyond the page.
+ */
+export function canvasWindowBounds(
+  artboard: Size2,
+  bleed: number,
+  interaction?: InteractionRect,
+): CanvasWindowBounds {
+  const cap = Math.max(bleed, MAX_INTERACTION_OUTSIDE)
+  return {
+    minX: Math.max(-cap, Math.min(-bleed, interaction ? interaction.x - bleed : -bleed)),
+    minY: Math.max(-cap, Math.min(-bleed, interaction ? interaction.y - bleed : -bleed)),
+    maxX: Math.min(artboard.width + cap, Math.max(artboard.width + bleed, interaction ? interaction.x + interaction.width + bleed : artboard.width + bleed)),
+    maxY: Math.min(artboard.height + cap, Math.max(artboard.height + bleed, interaction ? interaction.y + interaction.height + bleed : artboard.height + bleed)),
+  }
+}
+
 /**
  * The part of an artboard a live canvas element actually covers. A canvas the size of the whole artboard
  * would explode at high zoom (a 1080px page at 800 % is 8640 CSS px square), so the live canvas covers
@@ -113,15 +148,14 @@ export function computeCanvasWindow(
   visible: { x: number; y: number; width: number; height: number },
   overscan: number,
   bleed: number,
+  interaction?: InteractionRect,
 ): CanvasWindow {
-  const minX = -bleed
-  const minY = -bleed
-  const maxX = artboard.width + bleed
-  const maxY = artboard.height + bleed
-  const x0 = Math.max(minX, Math.floor(visible.x - overscan))
-  const y0 = Math.max(minY, Math.floor(visible.y - overscan))
-  const x1 = Math.min(maxX, Math.ceil(visible.x + visible.width + overscan))
-  const y1 = Math.min(maxY, Math.ceil(visible.y + visible.height + overscan))
+  const { minX, minY, maxX, maxY } = canvasWindowBounds(artboard, bleed, interaction)
+  const clamp = (value: number, min: number, max: number): number => Math.min(max, Math.max(min, value))
+  const x0 = clamp(Math.floor(visible.x - overscan), minX, maxX)
+  const y0 = clamp(Math.floor(visible.y - overscan), minY, maxY)
+  const x1 = clamp(Math.ceil(visible.x + visible.width + overscan), minX, maxX)
+  const y1 = clamp(Math.ceil(visible.y + visible.height + overscan), minY, maxY)
   return { x: x0, y: y0, width: Math.max(1, x1 - x0), height: Math.max(1, y1 - y0) }
 }
 

@@ -534,6 +534,10 @@ export class EditorEngine implements PageCanvasHost {
     this.commit(pageId, info)
   }
 
+  onInteractionWindowChange(_pageId: string): void {
+    this.view.relayout()
+  }
+
   onSelectionChange(pageId: string): void {
     const view = this.viewOf(pageId)
     if (!view) return

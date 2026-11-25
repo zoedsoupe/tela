@@ -108,10 +108,18 @@ function endpoints(line: DoryLine): { start: Point; end: Point } {
 }
 
 /** Drags one end of the line to the scene point (x, y) while the other end stays where it is. */
-export function moveLineEnd(line: DoryLine, which: 'start' | 'end', x: number, y: number): boolean {
+export function moveLineEnd(line: DoryLine, which: 'start' | 'end', x: number, y: number, shiftKey = false): boolean {
   const { start, end } = endpoints(line)
-  const a = which === 'start' ? new Point(x, y) : start
-  const b = which === 'end' ? new Point(x, y) : end
+  let a = which === 'start' ? new Point(x, y) : start
+  let b = which === 'end' ? new Point(x, y) : end
+  if (shiftKey) {
+    const length = Math.max(1, Math.hypot(b.x - a.x, b.y - a.y))
+    const angle = Math.round(Math.atan2(b.y - a.y, b.x - a.x) / (Math.PI / 4)) * (Math.PI / 4)
+    const dx = Math.cos(angle) * length
+    const dy = Math.sin(angle) * length
+    if (which === 'start') a = new Point(b.x - dx, b.y - dy)
+    else b = new Point(a.x + dx, a.y + dy)
+  }
   const length = Math.max(1, Math.hypot(b.x - a.x, b.y - a.y))
   line.set({ scaleX: 1, scaleY: 1, flipX: false, flipY: false, width: length, angle: (Math.atan2(b.y - a.y, b.x - a.x) * 180) / Math.PI })
   line.setPositionByOrigin(new Point((a.x + b.x) / 2, (a.y + b.y) / 2), 'center', 'center')
@@ -135,7 +143,8 @@ function endControl(which: 'start' | 'end'): Control {
       const matrix = util.multiplyTransformMatrices(vpt, line.calcTransformMatrix())
       return new Point(which === 'start' ? -line.width / 2 : line.width / 2, 0).transform(matrix)
     },
-    actionHandler: (_event, transform, x, y) => moveLineEnd(transform.target as DoryLine, which, x, y),
+    actionHandler: (event, transform, x, y) =>
+      moveLineEnd(transform.target as DoryLine, which, x, y, (event as Partial<MouseEvent>).shiftKey === true),
     render: (ctx, left, top, _style, target) => {
       ctx.save()
       ctx.fillStyle = "#ffffff"

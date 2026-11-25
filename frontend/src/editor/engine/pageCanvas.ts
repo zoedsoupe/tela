@@ -9,10 +9,13 @@
 import {
   ActiveSelection,
   Canvas,
+  Ellipse,
   FabricImage,
   type FabricObject,
   Group,
   IText,
+  Point,
+  Rect as FabricRect,
   type CanvasEvents,
   type TMat2D,
   type TPointerEvent,
@@ -151,6 +154,31 @@ function transformChanged(target: FabricObject, transform: CanvasEvents['before:
   )
 }
 
+function squareCornerResize(target: FabricObject, corner: string): void {
+  if (!(target instanceof FabricRect) && !(target instanceof Ellipse)) return
+  const fixedCornerIndex = corner === 'tl' ? 2 : corner === 'tr' ? 3 : corner === 'br' ? 0 : corner === 'bl' ? 1 : undefined
+  if (fixedCornerIndex === undefined) return
+
+  const width = target.width * Math.abs(target.scaleX)
+  const height = target.height * Math.abs(target.scaleY)
+  if (width <= 0 || height <= 0) return
+  const size = Math.max(width, height)
+  const fixedCorner = target.getCoords()[fixedCornerIndex]
+  const center = target.getCenterPoint()
+  target.set({
+    scaleX: target.scaleX * (size / width),
+    scaleY: target.scaleY * (size / height),
+  })
+  target.setCoords()
+  const resizedCorner = target.getCoords()[fixedCornerIndex]
+  target.setPositionByOrigin(
+    new Point(center.x + fixedCorner.x - resizedCorner.x, center.y + fixedCorner.y - resizedCorner.y),
+    'center',
+    'center',
+  )
+  target.setCoords()
+}
+
 interface GridCellPress {
   group: Group
   gridCellId: string
@@ -238,7 +266,7 @@ export class PageCanvas {
       stopContextMenu: true,
       fireRightClick: true,
       allowTouchScrolling: true,
-      uniformScaling: true,
+      uniformScaling: false,
       selectionKey: 'shiftKey',
       containerClass: 'doory-canvas',
     })
@@ -747,6 +775,7 @@ export class PageCanvas {
     })
     on("object:scaling", (e) => {
       this.dragCache.ensure()
+      if ((e.e as Partial<MouseEvent>).shiftKey === true) squareCornerResize(e.target, e.transform?.corner ?? '')
       this.snapScaling(e.target, e.transform?.corner ?? '', e.e)
       clampSlotImage(e.target)
       followFrames(this.frames)
@@ -1171,7 +1200,7 @@ export class PageCanvas {
 
   /**
    * Snapping while resizing: the edge being dragged sticks to the page and to other objects while the opposite
-   * edge stays put. Corners keep the object's proportions unless Shift unlocks them. Rotated objects and
+   * edge stays put. Corners keep the object's proportions while Shift is held. Rotated objects and
    * selections are not snapped (their bounding box does not follow the handle).
    */
   private snapScaling(target: FabricObject, corner: string, ev: TPointerEvent): void {

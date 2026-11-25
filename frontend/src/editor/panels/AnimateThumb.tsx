@@ -16,7 +16,7 @@ const SCALE = 2
 function colorsOf(el: HTMLElement): ThumbColors {
   const css = getComputedStyle(el)
   const read = (name: string): string => css.getPropertyValue(name).trim() || 'currentColor'
-  return { card: read("--marca-cor"), ink: read("--cor-na-marca"), ground: read("--color-bg-silenciado"), other: read("--color-texto") }
+  return { card: read("--color-brand"), ink: read("--color-on-brand"), ground: read("--color-bg-muted"), other: read("--color-text") }
 }
 
 type Subject = { kind: 'anim'; slot: 'enter' | 'exit' | 'emphasis'; anim: Anim } | { kind: 'transition'; transition: Pick<PageTransition, 'preset' | 'easing' | 'direction'>; durationMs: number }

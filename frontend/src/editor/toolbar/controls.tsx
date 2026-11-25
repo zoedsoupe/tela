@@ -260,7 +260,7 @@ export function Accordion({ title, children, defaultOpen = false, testId }: { ti
     <section className={ed.accordion} data-testid={testId}>
       <button type="button" className={ed.accordionHead} aria-expanded={open} onClick={() => setOpen((o) => !o)}>
         <span>{title}</span>
-        <ChevronDown size={14} aria-hidden="true" style={{ transform: open ? "girar (180 graus)" : undefined }} />
+        <ChevronDown size={14} aria-hidden="true" style={{ transform: open ? "rotate(180deg)" : undefined }} />
       </button>
       {open ? <div className={ed.accordionBody}>{children}</div> : null}
     </section>

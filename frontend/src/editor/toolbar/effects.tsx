@@ -94,7 +94,7 @@ export function EffectsPanel({ text }: { text: boolean }) {
 function ColorSwatchRow({ label, value, onChange }: { label: string; value: string; onChange: (c: string) => void }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-      <span style={{ font: "500 var(--text-xs) / 1 var(--font-sans)", color: "var(--cor-texto-silenciado)" }}>{label}</span>
+      <span style={{ font: "500 var(--text-xs) / 1 var(--font-sans)", color: "var(--color-text-subtle)" }}>{label}</span>
       <ColorButton label={`${label} cor`} value={{ type: 'solid', color: value }} solidOnly onChange={(f) => (f.type === 'solid' ? onChange(f.color) : undefined)} />
     </div>
   )

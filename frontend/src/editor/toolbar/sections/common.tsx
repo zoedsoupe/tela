@@ -157,13 +157,13 @@ export function AlignPanel({ selectionTarget }: { selectionTarget: boolean }) {
           {I.alignRight}
         </ToolButton>
         <ToolButton label={t.toolbar.alignTop} onClick={() => editor.arrange.align('top', at)}>
-          <span style={{ display: 'inline-flex', transform: "girar (90 graus)" }}>{I.alignLeft}</span>
+          <span style={{ display: 'inline-flex', transform: "rotate(90deg)" }}>{I.alignLeft}</span>
         </ToolButton>
         <ToolButton label={t.toolbar.alignMiddle} onClick={() => editor.arrange.align('middle', at)}>
-          <span style={{ display: 'inline-flex', transform: "girar (90 graus)" }}>{I.alignCenter}</span>
+          <span style={{ display: 'inline-flex', transform: "rotate(90deg)" }}>{I.alignCenter}</span>
         </ToolButton>
         <ToolButton label={t.toolbar.alignBottom} onClick={() => editor.arrange.align('bottom', at)}>
-          <span style={{ display: 'inline-flex', transform: "girar (90 graus)" }}>{I.alignRight}</span>
+          <span style={{ display: 'inline-flex', transform: "rotate(90deg)" }}>{I.alignRight}</span>
         </ToolButton>
       </div>
       {many || !sel.kinds.every(canFitKind) ? null : (
@@ -367,7 +367,7 @@ export function MultiSection() {
         <span style={{ display: 'inline-flex', transform: "escalaX(1)" }}>{I.alignJustify}</span>
       </ToolButton>
       <ToolButton label={t.toolbar.distributeV} disabled={sel.ids.length < 3} testId="ed-distribute-v" onClick={() => editor.arrange.distribute('vertical')}>
-        <span style={{ display: 'inline-flex', transform: "girar (90 graus)" }}>{I.alignJustify}</span>
+        <span style={{ display: 'inline-flex', transform: "rotate(90deg)" }}>{I.alignJustify}</span>
       </ToolButton>
       <ToolButton label={t.toolbar.tidy} disabled={sel.ids.length < 2} testId="ed-tidy" onClick={() => editor.arrange.tidy()}>
         <LayoutGrid size={18} aria-hidden="true" />

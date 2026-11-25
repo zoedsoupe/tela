@@ -47,7 +47,7 @@ export function ColorTool({ label, value, onChange, allowNone, allowGradient, ri
           ref={ref}
           type="button"
           className={`${ed.swatch} ${mixed ? ed.swatchMixed : none ? ed.swatchNone : ''}`}
-          style={mixed ? undefined : ring ? { background: 'transparent', border: `3px sólido ${css ?? 'var(--ed-border)'}`} : css ? { background: css } : undefined}
+          style={mixed ? undefined : ring ? { background: 'transparent', border: `3px solid ${css ?? 'var(--ed-border)'}`} : css ? { background: css } : undefined}
           aria-label={mixed ? t.toolbar.mixedColors(label) : label}
           aria-haspopup="dialog"
           aria-expanded={open}
@@ -87,7 +87,7 @@ function SwatchGrid({ value, onChange, allowNone, allowGradient, mixed, testId }
     return (
       <div className={ed.colorPicker} style={{ width: 280 }}>
         <button type="button" className={ed.cpBack} onClick={() => setView('swatches')}>
-          <span style={{ display: 'inline-flex', transform: "girar (90 graus)" }}>{I.chevronDown}</span>
+          <span style={{ display: 'inline-flex', transform: "rotate(90deg)" }}>{I.chevronDown}</span>
           {t.swatches.back}
         </button>
         {allowGradient ? <FillEditor value={value} onChange={(f) => onChange(f, 'fill-custom')} onCommit={commit} onSaveColor={saveColor ?? undefined} /> : <ColorPicker value={value.type === 'solid' ? value.color : '#000000'} onChange={(c) => solid(c, 'fill-custom')} onCommit={commit} onSaveColor={saveColor ?? undefined} />}
